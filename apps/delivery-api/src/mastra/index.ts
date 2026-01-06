@@ -11,6 +11,7 @@ export const mastra = new Mastra({
     coachingAgent,
   },
   storage: new LibSQLStore({
+    id: "delivery-api",
     url: process.env.DATABASE_URL || "file:./data/learner.db",
   }),
 });

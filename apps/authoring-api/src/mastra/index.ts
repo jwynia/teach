@@ -9,6 +9,7 @@ export const mastra = new Mastra({
     curriculumAssistant,
   },
   storage: new LibSQLStore({
+    id: "authoring-api",
     url: process.env.DATABASE_URL || "file:./data/mastra.db",
   }),
 });

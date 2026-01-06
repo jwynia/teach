@@ -1,11 +1,20 @@
 import { Routes, Route } from "react-router-dom";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  Progress,
+} from "@teach/ui";
+import { BookOpen, MessageCircle } from "lucide-react";
 
 function CourseHome() {
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-8">
+    <div className="min-h-screen p-8">
       <header className="mb-8">
         <h1 className="text-3xl font-bold">Welcome to Your Course</h1>
-        <p className="text-slate-400 mt-2">
+        <p className="text-muted-foreground mt-2">
           Learn at your own pace with AI-powered guidance
         </p>
       </header>
@@ -13,41 +22,40 @@ function CourseHome() {
       <main className="max-w-4xl">
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Your Progress</h2>
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="flex justify-between mb-2">
-              <span>Course Progress</span>
-              <span className="text-emerald-400">0%</span>
-            </div>
-            <div className="w-full bg-slate-700 rounded-full h-2">
-              <div
-                className="bg-emerald-500 h-2 rounded-full"
-                style={{ width: "0%" }}
-              />
-            </div>
-          </div>
+          <Card>
+            <CardContent className="py-6">
+              <div className="flex justify-between mb-2">
+                <span className="text-sm font-medium">Course Progress</span>
+                <span className="text-sm text-muted-foreground">0%</span>
+              </div>
+              <Progress value={0} className="h-2" />
+            </CardContent>
+          </Card>
         </section>
 
         <section className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Continue Learning</h2>
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <p className="text-slate-400">
-              No course loaded. Import a course to get started.
-            </p>
-          </div>
+          <Card>
+            <CardContent className="py-8">
+              <p className="text-muted-foreground text-center">
+                No course loaded. Import a course to get started.
+              </p>
+            </CardContent>
+          </Card>
         </section>
 
         <section>
           <h2 className="text-xl font-semibold mb-4">AI Assistants</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <AssistantCard
+              icon={<BookOpen className="h-5 w-5" />}
               name="Teaching Assistant"
               description="Get explanations and learn new concepts"
-              color="blue"
             />
             <AssistantCard
+              icon={<MessageCircle className="h-5 w-5" />}
               name="Practice Coach"
               description="Get feedback on exercises and practice"
-              color="emerald"
             />
           </div>
         </section>
@@ -57,26 +65,26 @@ function CourseHome() {
 }
 
 function AssistantCard({
+  icon,
   name,
   description,
-  color,
 }: {
+  icon: React.ReactNode;
   name: string;
   description: string;
-  color: "blue" | "emerald";
 }) {
-  const colorClasses = {
-    blue: "border-blue-500 hover:bg-blue-500/10",
-    emerald: "border-emerald-500 hover:bg-emerald-500/10",
-  };
-
   return (
-    <div
-      className={`bg-slate-800 rounded-lg p-4 border ${colorClasses[color]} transition-colors cursor-pointer`}
-    >
-      <h3 className="font-semibold mb-2">{name}</h3>
-      <p className="text-slate-400 text-sm">{description}</p>
-    </div>
+    <Card className="cursor-pointer hover:border-primary/50 transition-colors">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="text-muted-foreground">{icon}</div>
+          <div>
+            <CardTitle className="text-base">{name}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+    </Card>
   );
 }
 

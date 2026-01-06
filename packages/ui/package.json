@@ -10,6 +10,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./styles": "./src/styles/globals.css",
     "./components/*": {
       "types": "./dist/components/*.d.ts",
       "import": "./dist/components/*.js"
@@ -21,8 +22,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@radix-ui/react-progress": "^1.1.1",
+    "@radix-ui/react-slot": "^1.1.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "lucide-react": "^0.469.0",
     "tailwind-merge": "^2.6.0"
   },
   "peerDependencies": {
