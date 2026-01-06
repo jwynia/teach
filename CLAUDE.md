@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Context Network
+
+This project uses a context network at `context/`. Start with:
+- `context/status.md` - Current project state and active work
+- `context/decisions.md` - Architecture decisions
+- `context/glossary.md` - Domain vocabulary
+- `context/questions.md` - Open research questions
+
+Update `context/status.md` at session boundaries.
+
 ## Project Overview
 
 Teach is a software project for researching and building course curricula with supporting teaching/coaching LLM agents. Courses are exportable into portable formats for a separate web application.

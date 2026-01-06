@@ -1,0 +1,24 @@
+{
+  "name": "teach",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "clean": "turbo clean",
+    "dev:authoring-api": "turbo dev --filter=authoring-api",
+    "dev:authoring-app": "turbo dev --filter=authoring-app",
+    "dev:delivery-api": "turbo dev --filter=delivery-api",
+    "dev:delivery-app": "turbo dev --filter=delivery-app"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "packageManager": "pnpm@9.15.2"
+}
