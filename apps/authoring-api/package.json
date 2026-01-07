@@ -7,9 +7,11 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "db:migrate": "tsx src/db/migrate.ts"
   },
   "dependencies": {
+    "@libsql/client": "^0.14.0",
     "@mastra/core": "beta",
     "@mastra/hono": "beta",
     "@mastra/libsql": "beta",
@@ -19,6 +21,7 @@
     "@teach/course-schema": "workspace:*",
     "hono": "^4.6.18",
     "@hono/node-server": "^1.13.8",
+    "@hono/zod-validator": "^0.4.2",
     "zod": "^3.24.1"
   },
   "devDependencies": {

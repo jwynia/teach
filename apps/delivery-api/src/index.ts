@@ -7,6 +7,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { MastraServer } from "@mastra/hono";
 import { mastra } from "./mastra/index.js";
+import { migrate } from "./db/migrate.js";
 
 const app = new Hono();
 
@@ -44,6 +45,9 @@ app.get("/", (c) => {
   });
 });
 
+// Run database migrations
+await migrate();
+
 // Initialize Mastra routes
 const server = new MastraServer({ app, mastra });
 await server.init();
@@ -54,5 +58,6 @@ console.log(`Delivery API running at http://localhost:${port}`);
 console.log(`Agent endpoints:`);
 console.log(`  POST /api/agents/teaching-agent/generate`);
 console.log(`  POST /api/agents/coaching-agent/generate`);
+console.log(`Database: Application data in ./data/delivery.db`);
 
 serve({ fetch: app.fetch, port });
