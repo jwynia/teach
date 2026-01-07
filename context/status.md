@@ -2,7 +2,7 @@
 
 ## Current State
 
-Teach has **completed Phase 1 (Foundation)** of the feature backlog. All core infrastructure is in place: types, schemas, databases, and CRUD APIs for courses, content, and competencies.
+Teach has **completed Phase 2 API endpoints** of the feature backlog. Scenario and progression path APIs are now complete. Next: Competency framework UI components.
 
 ## Active Work
 
@@ -16,9 +16,10 @@ Teach has **completed Phase 1 (Foundation)** of the feature backlog. All core in
 - [x] Create unit/lesson/activity CRUD endpoints
 - [x] Create competency framework endpoints
 
-### Phase 2: Next Up
-- [ ] Scenario management endpoints
-- [ ] Progression path endpoints
+### Phase 2: Competency Framework APIs (IN PROGRESS)
+- [x] Scenario management endpoints (CRUD, variants, rubrics, competency mapping)
+- [x] Progression path endpoints (CRUD, steps, reordering)
+- [x] Skip logic rule endpoints (CRUD)
 - [ ] Competency framework UI components
 - [ ] Update curriculum-assistant agent with competency awareness
 
@@ -32,6 +33,9 @@ Teach has **completed Phase 1 (Foundation)** of the feature backlog. All core in
 
 | Date | Change | Impact |
 |------|--------|--------|
+| 2026-01-07 | Scenario management API complete | scenarios.ts with 14 endpoints for scenarios, variants, rubrics |
+| 2026-01-07 | Progression path API complete | paths.ts with 11 endpoints for paths, steps, reordering |
+| 2026-01-07 | Skip logic API complete | skipLogic router with 5 CRUD endpoints |
 | 2026-01-06 | Phase 1 complete | All foundation work done |
 | 2026-01-06 | Competency endpoints created | Clusters, competencies, rubrics, dependencies API |
 | 2026-01-06 | Content CRUD endpoints created | Courses, units, lessons, activities API |
@@ -79,29 +83,17 @@ teach/
 
 ## Key Files Modified This Session
 
-**Types & Schema:**
+**Phase 2 API Routes (New):**
+- `apps/authoring-api/src/routes/scenarios.ts` - Scenario CRUD, variants, rubrics, competency mapping
+- `apps/authoring-api/src/routes/paths.ts` - Progression paths, steps, skip logic rules
+- `apps/authoring-api/src/index.ts` - Route registrations for new endpoints
+
+**Phase 1 Files (Previous):**
 - `packages/types/src/index.ts` - 40+ types for competency framework
 - `packages/course-schema/src/index.ts` - Zod schemas for competencies, scenarios, export
-
-**Authoring API:**
-- `apps/authoring-api/src/db/client.ts` - LibSQL database client
-- `apps/authoring-api/src/db/migrate.ts` - Migration runner
 - `apps/authoring-api/src/db/migrations/001_initial_schema.sql` - All tables
 - `apps/authoring-api/src/routes/courses.ts` - Course CRUD + export
-- `apps/authoring-api/src/routes/units.ts` - Unit CRUD
-- `apps/authoring-api/src/routes/lessons.ts` - Lesson CRUD
-- `apps/authoring-api/src/routes/activities.ts` - Activity CRUD
 - `apps/authoring-api/src/routes/competencies.ts` - Competency framework CRUD
-
-**Delivery API:**
-- `apps/delivery-api/src/db/client.ts` - LibSQL database client
-- `apps/delivery-api/src/db/migrate.ts` - Migration runner
-- `apps/delivery-api/src/db/migrations/001_initial_schema.sql` - Learner tables
-
-**Context Network:**
-- `context/status.md` - Updated with progress
-- `context/backlog.md` - Created with feature breakdown
-- `context/decisions.md` - Added DEC-006, DEC-007, DEC-008
 
 ## Blockers
 
@@ -109,10 +101,9 @@ None currently.
 
 ## Next Steps
 
-1. Extend `packages/course-schema/src/index.ts` with Zod schemas
-2. Set up database migrations for authoring-api
-3. Set up database migrations for delivery-api
-4. Implement course CRUD endpoints
+1. Build competency framework UI components in authoring-app
+2. Update curriculum-assistant agent with competency awareness
+3. Start Phase 3: Document generation pipeline
 
 ## Commands
 
@@ -134,4 +125,4 @@ pnpm dev
 
 ---
 
-*Last updated: 2026-01-06*
+*Last updated: 2026-01-07*

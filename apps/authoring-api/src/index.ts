@@ -13,6 +13,8 @@ import { units } from "./routes/units.js";
 import { lessons } from "./routes/lessons.js";
 import { activities } from "./routes/activities.js";
 import { competencies } from "./routes/competencies.js";
+import { scenarios } from "./routes/scenarios.js";
+import { paths, skipLogic } from "./routes/paths.js";
 
 const app = new Hono();
 
@@ -65,6 +67,15 @@ app.route("/api/activities", activities);
 app.route("/api/courses/:courseId/competencies", competencies);
 app.route("/api/competencies", competencies);
 app.route("/api/clusters", competencies);
+// Scenario routes
+app.route("/api/courses/:courseId/scenarios", scenarios);
+app.route("/api/scenarios", scenarios);
+// Progression path routes
+app.route("/api/courses/:courseId/paths", paths);
+app.route("/api/paths", paths);
+app.route("/api/steps", paths);
+app.route("/api/courses/:courseId/skip-logic", skipLogic);
+app.route("/api/skip-logic", skipLogic);
 
 // Initialize Mastra routes
 const server = new MastraServer({ app, mastra });
@@ -83,6 +94,16 @@ console.log(`  Clusters:     GET/POST /api/courses/:id/clusters, PUT/DEL /api/cl
 console.log(`  Competencies: GET/POST /api/courses/:id/competencies, GET/PUT/DEL /api/competencies/:id`);
 console.log(`  Rubrics:      GET/PUT /api/competencies/:id/rubric`);
 console.log(`  Dependencies: GET/POST/DEL /api/competencies/:id/dependencies`);
+console.log(`Scenario endpoints:`);
+console.log(`  Scenarios:    GET/POST /api/courses/:id/scenarios, GET/PUT/DEL /api/scenarios/:id`);
+console.log(`  Variants:     GET /api/scenarios/:id/variants, PUT/DEL /api/scenarios/:id/variants/:variant`);
+console.log(`  Rubric:       GET/PUT /api/scenarios/:id/rubric`);
+console.log(`  Competencies: GET/POST/PUT/DEL /api/scenarios/:id/competencies`);
+console.log(`Progression endpoints:`);
+console.log(`  Paths:        GET/POST /api/courses/:id/paths, GET/PUT/DEL /api/paths/:id`);
+console.log(`  Steps:        GET/POST /api/paths/:id/steps, GET/PUT/DEL /api/steps/:id`);
+console.log(`  Reorder:      PATCH /api/paths/:id/steps/reorder`);
+console.log(`  Skip Logic:   GET/POST /api/courses/:id/skip-logic, GET/PUT/DEL /api/skip-logic/:id`);
 console.log(`Other:`);
 console.log(`  Export:       POST /api/courses/:id/export`);
 console.log(`  Agent:        POST /api/agents/curriculum-assistant/generate`);
