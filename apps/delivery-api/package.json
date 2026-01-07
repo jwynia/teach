@@ -11,6 +11,7 @@
     "db:migrate": "tsx src/db/migrate.ts"
   },
   "dependencies": {
+    "ai": "^4.0.0",
     "@libsql/client": "^0.14.0",
     "@mastra/core": "beta",
     "@mastra/hono": "beta",

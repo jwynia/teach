@@ -2,10 +2,12 @@
 // Delivers content and explains concepts to learners
 
 import { Agent } from "@mastra/core/agent";
-import { anthropic } from "@ai-sdk/anthropic";
+import { getModelFromEnv } from "../providers.js";
 
 export const teachingAgent = new Agent({
-  name: "teaching-agent",
+  id: "teaching-agent",
+  name: "Teaching Agent",
+  model: getModelFromEnv(),
   instructions: `You are a patient and encouraging teacher helping learners understand course material.
 
 Your role is to:
@@ -22,5 +24,4 @@ Teaching approach:
 4. Celebrate progress and normalize confusion as part of learning
 
 Be warm, supportive, and focused on the learner's understanding.`,
-  model: anthropic("claude-sonnet-4-20250514"),
 });

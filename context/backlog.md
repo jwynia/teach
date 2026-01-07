@@ -251,4 +251,45 @@ See `context/decisions.md` for full decision records.
 
 ---
 
-*Last updated: 2026-01-06*
+## Code Review Backlog (2026-01-07)
+
+Issues identified during comprehensive code review. Prioritized by impact.
+
+### High Priority
+
+| ID | Issue | Location | Description |
+|----|-------|----------|-------------|
+| ~~CR-001~~ | ~~Missing ANTHROPIC_API_KEY documentation~~ | ~~`apps/authoring-api/`~~ | **RESOLVED** - Implemented flexible LLM provider factory with `LLM_PROVIDER`, `LLM_MODEL`, `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_HEADERS` env vars. Supports Anthropic, OpenAI, OpenRouter, and custom endpoints. See `.env.example` files. |
+| CR-002 | Circular dependency detection not implemented | `apps/authoring-api/src/mastra/tools/competency-tools.ts:621` | `analyze-dependencies` tool has `deepestChain: 0` stub. Should detect circular deps and compute actual chain depth. |
+| CR-003 | Beta dependencies may break | `apps/authoring-api/package.json` | Using `@mastra/core: beta`, `@mastra/hono: beta`, `@mastra/libsql: beta`. Should pin to specific beta versions. |
+
+### Medium Priority
+
+| ID | Issue | Location | Description |
+|----|-------|----------|-------------|
+| CR-004 | Hardcoded CORS origins | `apps/authoring-api/src/index.ts:14-17` | CORS origins hardcoded. Should use `ALLOWED_ORIGINS` env var for production flexibility. |
+| CR-005 | React 19 with React 18 types | `apps/authoring-app/package.json` | Using `react@19.0.0` but `@types/react@18.3.18`. May cause type mismatches. Update types when available. |
+| CR-006 | Missing error boundaries | `apps/authoring-app/src/` | No React error boundaries. Uncaught render errors crash entire app. Add error boundary component. |
+| CR-007 | Course existence not validated in tools | `competency-tools.ts` | Some tools (e.g., `create-competency`) don't verify courseId exists before insert. FK constraint catches it but with poor error message. |
+
+### Low Priority (Acceptable for Local Dev Tool)
+
+| ID | Issue | Location | Description |
+|----|-------|----------|-------------|
+| CR-008 | No authentication | All APIs | No auth/authz. Acceptable for local single-user tool. Document this limitation. |
+| CR-009 | No CSRF protection | All APIs | No CSRF tokens. Not needed for same-origin localhost requests. |
+| CR-010 | No rate limiting | All APIs | No request rate limiting. Could be issue if exposed. Document as local-only. |
+
+### Informational (Good Patterns Found)
+
+| Pattern | Location | Description |
+|---------|----------|-------------|
+| ✅ Parameterized SQL | All route files, tool files | All database queries use parameterized queries. No SQL injection risk. |
+| ✅ Zod validation | All route files | Input validation on all endpoints using `@hono/zod-validator`. |
+| ✅ FK constraints | `001_initial_schema.sql` | Proper foreign key constraints with CASCADE deletes. |
+| ✅ React escaping | All React components | No `dangerouslySetInnerHTML`. React auto-escapes text content. |
+| ✅ Vite proxy | `vite.config.ts` | API proxy properly configured for dev environment. |
+
+---
+
+*Last updated: 2026-01-07*

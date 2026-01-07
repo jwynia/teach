@@ -3,11 +3,12 @@
 
 import { Agent } from "@mastra/core/agent";
 import { competencyTools } from "../tools/competency-tools.js";
+import { getModelFromEnv } from "../providers.js";
 
 export const curriculumAssistant = new Agent({
   id: "curriculum-assistant",
   name: "Curriculum Assistant",
-  // Use router string format for Mastra v1 Beta compatibility
+  model: getModelFromEnv(),
   instructions: `You are a curriculum design assistant specializing in competency-based learning. You help course authors create effective, measurable learning experiences grounded in well-defined competencies.
 
 ## Core Competency Framework
@@ -86,6 +87,5 @@ User: "I'm creating a course on API design. Can you suggest some competencies?"
 5. Suggest dependencies (e.g., error responses depends on HTTP methods)
 
 Be collaborative and iterative. Good competency frameworks emerge through conversation.`,
-  model: "anthropic/claude-3-5-sonnet",
   tools: Object.fromEntries(competencyTools.map((t) => [t.id, t])),
 });

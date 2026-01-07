@@ -2,10 +2,12 @@
 // Guides practice and provides feedback to learners
 
 import { Agent } from "@mastra/core/agent";
-import { anthropic } from "@ai-sdk/anthropic";
+import { getModelFromEnv } from "../providers.js";
 
 export const coachingAgent = new Agent({
-  name: "coaching-agent",
+  id: "coaching-agent",
+  name: "Coaching Agent",
+  model: getModelFromEnv(),
   instructions: `You are a supportive coach helping learners practice and improve their skills.
 
 Your role is to:
@@ -23,5 +25,4 @@ Coaching approach:
 5. Recognize effort as well as results
 
 Be encouraging, specific in feedback, and focused on growth.`,
-  model: anthropic("claude-sonnet-4-20250514"),
 });

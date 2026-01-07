@@ -35,6 +35,8 @@ Teach has **completed Phase 2** of the feature backlog. All competency framework
 
 | Date | Change | Impact |
 |------|--------|--------|
+| 2026-01-07 | Flexible LLM provider configuration | Agents now support Anthropic, OpenAI, OpenRouter, custom endpoints via env vars |
+| 2026-01-07 | Code review completed | 10 issues identified (3 high, 4 medium, 3 low), 5 good patterns documented |
 | 2026-01-07 | Curriculum-assistant agent updated | 9 competency tools, competency-aware instructions |
 | 2026-01-07 | Phase 2 complete | All APIs, UI, and agent ready |
 | 2026-01-07 | Competency framework UI complete | Full CRUD for clusters, competencies, rubrics, dependencies |
@@ -122,6 +124,10 @@ teach/
 ## Blockers
 
 None currently.
+
+## Code Review
+
+Comprehensive code review completed 2026-01-07. See `context/backlog.md` → "Code Review Backlog" section for 10 issues identified.
 
 ## Next Steps
 
