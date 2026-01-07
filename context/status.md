@@ -2,7 +2,7 @@
 
 ## Current State
 
-Teach has **completed Phase 2 API endpoints** of the feature backlog. Scenario and progression path APIs are now complete. Next: Competency framework UI components.
+Teach has **completed Phase 2** of the feature backlog. Competency framework APIs and core UI components are complete. Next: Update curriculum-assistant agent with competency awareness, then Phase 3 (Document generation).
 
 ## Active Work
 
@@ -16,11 +16,13 @@ Teach has **completed Phase 2 API endpoints** of the feature backlog. Scenario a
 - [x] Create unit/lesson/activity CRUD endpoints
 - [x] Create competency framework endpoints
 
-### Phase 2: Competency Framework APIs (IN PROGRESS)
+### Phase 2: Competency Framework APIs & UI (COMPLETE)
 - [x] Scenario management endpoints (CRUD, variants, rubrics, competency mapping)
 - [x] Progression path endpoints (CRUD, steps, reordering)
 - [x] Skip logic rule endpoints (CRUD)
-- [ ] Competency framework UI components
+- [x] Competency framework UI components (clusters, competencies, rubrics, dependencies)
+- [x] Course management pages with routing
+- [x] Shared UI component library (Input, Label, Textarea, Select, Tabs, Dialog, Badge)
 - [ ] Update curriculum-assistant agent with competency awareness
 
 ### Completed Previously
@@ -33,6 +35,9 @@ Teach has **completed Phase 2 API endpoints** of the feature backlog. Scenario a
 
 | Date | Change | Impact |
 |------|--------|--------|
+| 2026-01-07 | Competency framework UI complete | Full CRUD for clusters, competencies, rubrics, dependencies |
+| 2026-01-07 | Shared UI library expanded | Added Input, Label, Textarea, Select, Tabs, Dialog, Badge, Separator |
+| 2026-01-07 | Course management pages added | CoursesPage, CourseDetailPage with tabs |
 | 2026-01-07 | Scenario management API complete | scenarios.ts with 14 endpoints for scenarios, variants, rubrics |
 | 2026-01-07 | Progression path API complete | paths.ts with 11 endpoints for paths, steps, reordering |
 | 2026-01-07 | Skip logic API complete | skipLogic router with 5 CRUD endpoints |
@@ -83,17 +88,30 @@ teach/
 
 ## Key Files Modified This Session
 
-**Phase 2 API Routes (New):**
+**Authoring App UI (New):**
+- `apps/authoring-app/src/App.tsx` - Routes for courses and course detail pages
+- `apps/authoring-app/src/pages/CoursesPage.tsx` - Course list with create dialog
+- `apps/authoring-app/src/pages/CourseDetailPage.tsx` - Tabbed course editor with competency management
+- `apps/authoring-app/src/hooks/useApi.ts` - Data fetching hooks for all API endpoints
+- `apps/authoring-app/src/components/competencies/CompetencyList.tsx` - Clustered competency list
+- `apps/authoring-app/src/components/competencies/CompetencyForm.tsx` - Create/edit competency dialog
+- `apps/authoring-app/src/components/competencies/ClusterForm.tsx` - Create/edit cluster dialog
+- `apps/authoring-app/src/components/competencies/RubricEditor.tsx` - 4-level rubric editor
+- `apps/authoring-app/src/components/competencies/CompetencyDetail.tsx` - Detail view with rubric and dependencies
+
+**Shared UI Components (New):**
+- `packages/ui/src/components/ui/input.tsx`
+- `packages/ui/src/components/ui/label.tsx`
+- `packages/ui/src/components/ui/textarea.tsx`
+- `packages/ui/src/components/ui/select.tsx`
+- `packages/ui/src/components/ui/tabs.tsx`
+- `packages/ui/src/components/ui/dialog.tsx`
+- `packages/ui/src/components/ui/badge.tsx`
+- `packages/ui/src/components/ui/separator.tsx`
+
+**Phase 2 API Routes:**
 - `apps/authoring-api/src/routes/scenarios.ts` - Scenario CRUD, variants, rubrics, competency mapping
 - `apps/authoring-api/src/routes/paths.ts` - Progression paths, steps, skip logic rules
-- `apps/authoring-api/src/index.ts` - Route registrations for new endpoints
-
-**Phase 1 Files (Previous):**
-- `packages/types/src/index.ts` - 40+ types for competency framework
-- `packages/course-schema/src/index.ts` - Zod schemas for competencies, scenarios, export
-- `apps/authoring-api/src/db/migrations/001_initial_schema.sql` - All tables
-- `apps/authoring-api/src/routes/courses.ts` - Course CRUD + export
-- `apps/authoring-api/src/routes/competencies.ts` - Competency framework CRUD
 
 ## Blockers
 
