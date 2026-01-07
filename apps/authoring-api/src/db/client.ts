@@ -1,7 +1,7 @@
 // Database Client for Authoring API
 // Handles course content and competency framework storage
 
-import { createClient, type Client } from "@libsql/client";
+import { createClient, type Client, type InValue } from "@libsql/client";
 
 let db: Client | null = null;
 
@@ -21,12 +21,23 @@ export async function closeDb(): Promise<void> {
   }
 }
 
+// Convert undefined to null for SQL compatibility
+// Accept unknown[] for backward compatibility with dynamic array building
+export type SqlValue = InValue | undefined;
+function normalizeArgs(args: unknown[]): InValue[] {
+  return args.map((arg) => {
+    if (arg === undefined) return null;
+    // At runtime, trust that the caller passed valid SQL values
+    return arg as InValue;
+  });
+}
+
 // Helper to run queries with error handling
 export async function query<T = unknown>(
   sql: string,
   args: unknown[] = []
 ): Promise<T[]> {
-  const result = await getDb().execute({ sql, args });
+  const result = await getDb().execute({ sql, args: normalizeArgs(args) });
   return result.rows as T[];
 }
 
@@ -44,7 +55,7 @@ export async function execute(
   sql: string,
   args: unknown[] = []
 ): Promise<{ rowsAffected: number; lastInsertRowid?: bigint }> {
-  const result = await getDb().execute({ sql, args });
+  const result = await getDb().execute({ sql, args: normalizeArgs(args) });
   return {
     rowsAffected: result.rowsAffected,
     lastInsertRowid: result.lastInsertRowid,
@@ -63,11 +74,11 @@ export async function transaction<T>(
   try {
     const result = await fn({
       query: async <R = unknown>(sql: string, args: unknown[] = []) => {
-        const result = await client.execute({ sql, args });
+        const result = await client.execute({ sql, args: normalizeArgs(args) });
         return result.rows as R[];
       },
       execute: async (sql: string, args: unknown[] = []) => {
-        await client.execute({ sql, args });
+        await client.execute({ sql, args: normalizeArgs(args) });
       },
     });
     await client.execute("COMMIT");

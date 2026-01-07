@@ -2,7 +2,7 @@
 
 ## Current State
 
-Teach has **completed Phase 2** of the feature backlog. Competency framework APIs and core UI components are complete. Next: Update curriculum-assistant agent with competency awareness, then Phase 3 (Document generation).
+Teach has **completed Phase 2** of the feature backlog. All competency framework APIs, UI components, and the curriculum-assistant agent are complete. Ready for Phase 3 (Document generation).
 
 ## Active Work
 
@@ -23,7 +23,7 @@ Teach has **completed Phase 2** of the feature backlog. Competency framework API
 - [x] Competency framework UI components (clusters, competencies, rubrics, dependencies)
 - [x] Course management pages with routing
 - [x] Shared UI component library (Input, Label, Textarea, Select, Tabs, Dialog, Badge)
-- [ ] Update curriculum-assistant agent with competency awareness
+- [x] Update curriculum-assistant agent with competency awareness
 
 ### Completed Previously
 - [x] Define core architecture and component boundaries
@@ -35,6 +35,8 @@ Teach has **completed Phase 2** of the feature backlog. Competency framework API
 
 | Date | Change | Impact |
 |------|--------|--------|
+| 2026-01-07 | Curriculum-assistant agent updated | 9 competency tools, competency-aware instructions |
+| 2026-01-07 | Phase 2 complete | All APIs, UI, and agent ready |
 | 2026-01-07 | Competency framework UI complete | Full CRUD for clusters, competencies, rubrics, dependencies |
 | 2026-01-07 | Shared UI library expanded | Added Input, Label, Textarea, Select, Tabs, Dialog, Badge, Separator |
 | 2026-01-07 | Course management pages added | CoursesPage, CourseDetailPage with tabs |
@@ -56,17 +58,17 @@ See `context/backlog.md` for detailed breakdown.
 
 | Epic | Description | Status |
 |------|-------------|--------|
-| Epic 1 | Foundation - Data Model & Database | **In Progress** |
-| Epic 2 | Authoring API - CRUD Endpoints | Pending |
+| Epic 1 | Foundation - Data Model & Database | **Complete** |
+| Epic 2 | Authoring API - CRUD Endpoints | **Complete** |
 | Epic 3 | Document Generation Pipeline | Pending |
 | Epic 4 | Learning Verification System | Pending |
-| Epic 5 | Authoring UI | Pending |
+| Epic 5 | Authoring UI | **In Progress** |
 | Epic 6 | Delivery UI Enhancements | Pending |
 
 ### Implementation Phases
-1. **Phase 1** (Current): Types, schemas, databases, basic CRUD
-2. **Phase 2**: Competency framework APIs and UI
-3. **Phase 3**: Document generation pipeline
+1. **Phase 1**: Types, schemas, databases, basic CRUD (COMPLETE)
+2. **Phase 2**: Competency framework APIs and UI (COMPLETE)
+3. **Phase 3** (Next): Document generation pipeline
 4. **Phase 4**: Learning verification system
 5. **Phase 5**: Polish and feedback loops
 
@@ -113,15 +115,19 @@ teach/
 - `apps/authoring-api/src/routes/scenarios.ts` - Scenario CRUD, variants, rubrics, competency mapping
 - `apps/authoring-api/src/routes/paths.ts` - Progression paths, steps, skip logic rules
 
+**Curriculum Assistant Agent (Updated):**
+- `apps/authoring-api/src/mastra/agents/curriculum-assistant.ts` - Competency-aware agent with 9 tools
+- `apps/authoring-api/src/mastra/tools/competency-tools.ts` - Tools for listing, creating, and analyzing competencies
+
 ## Blockers
 
 None currently.
 
 ## Next Steps
 
-1. Build competency framework UI components in authoring-app
-2. Update curriculum-assistant agent with competency awareness
-3. Start Phase 3: Document generation pipeline
+1. Start Phase 3: Document generation pipeline
+2. Build scenario management UI in authoring-app
+3. Build progression path designer UI in authoring-app
 
 ## Commands
 
