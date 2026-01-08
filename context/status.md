@@ -35,6 +35,7 @@ Teach has **completed Phase 2** of the feature backlog. All competency framework
 
 | Date | Change | Impact |
 |------|--------|--------|
+| 2026-01-07 | RevealJS generator skill created | New document generation target for HTML presentations, API endpoint added |
 | 2026-01-07 | Flexible LLM provider configuration | Agents now support Anthropic, OpenAI, OpenRouter, custom endpoints via env vars |
 | 2026-01-07 | Code review completed | 10 issues identified (3 high, 4 medium, 3 low), 5 good patterns documented |
 | 2026-01-07 | Curriculum-assistant agent updated | 9 competency tools, competency-aware instructions |
@@ -121,6 +122,13 @@ teach/
 - `apps/authoring-api/src/mastra/agents/curriculum-assistant.ts` - Competency-aware agent with 9 tools
 - `apps/authoring-api/src/mastra/tools/competency-tools.ts` - Tools for listing, creating, and analyzing competencies
 
+**RevealJS Generator Skill (New):**
+- `.claude/skills/presentation/revealjs-generator/SKILL.md` - Skill documentation
+- `.claude/skills/presentation/revealjs-generator/scripts/generate-from-markdown.ts` - Markdown → RevealJS HTML
+- `.claude/skills/presentation/revealjs-generator/scripts/generate-scratch.ts` - JSON spec → RevealJS HTML
+- `.claude/skills/presentation/revealjs-generator/assets/revealjs-spec-schema.json` - JSON schema for spec validation
+- `apps/authoring-api/src/routes/courses.ts` - Added `POST /:id/export/revealjs` endpoint
+
 ## Blockers
 
 None currently.
@@ -131,9 +139,10 @@ Comprehensive code review completed 2026-01-07. See `context/backlog.md` → "Co
 
 ## Next Steps
 
-1. Start Phase 3: Document generation pipeline
+1. Continue Phase 3: Document generation pipeline (RevealJS complete, PDF/DOCX/XLSX pending)
 2. Build scenario management UI in authoring-app
 3. Build progression path designer UI in authoring-app
+4. Address code review backlog items
 
 ## Commands
 

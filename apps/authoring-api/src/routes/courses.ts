@@ -427,4 +427,224 @@ courses.post("/:id/export", async (c) => {
   return c.json(courseExport);
 });
 
+// POST /api/courses/:id/export/revealjs - Export course as RevealJS presentation
+courses.post("/:id/export/revealjs", async (c) => {
+  const id = c.req.param("id");
+  const theme = c.req.query("theme") || "black";
+  const download = c.req.query("download") === "true";
+
+  // Validate theme
+  const validThemes = ["black", "white", "league", "beige", "night", "serif", "simple", "solarized", "blood", "moon"];
+  const selectedTheme = validThemes.includes(theme) ? theme : "black";
+
+  // Get course
+  const courseRow = await queryOne<CourseRow>(
+    "SELECT * FROM courses WHERE id = ?",
+    [id]
+  );
+
+  if (!courseRow) {
+    return c.json({ error: "Course not found" }, 404);
+  }
+
+  // Get units with lessons
+  const unitRows = await query<UnitRow>(
+    'SELECT * FROM units WHERE course_id = ? ORDER BY "order"',
+    [id]
+  );
+
+  // Get competencies for the course
+  const competencies = await query<{ code: string; title: string; description: string }>(
+    "SELECT code, title, description FROM competencies WHERE course_id = ? ORDER BY code",
+    [id]
+  );
+
+  // Build markdown content
+  const lines: string[] = [];
+
+  // Front matter
+  lines.push("---");
+  lines.push(`title: ${courseRow.title}`);
+  lines.push(`theme: ${selectedTheme}`);
+  lines.push("---");
+  lines.push("");
+
+  // Title slide
+  lines.push(`# ${courseRow.title}`);
+  lines.push("");
+  if (courseRow.description) {
+    lines.push(courseRow.description);
+  }
+  lines.push("");
+
+  // Learning objectives slide (from competencies)
+  if (competencies.length > 0) {
+    lines.push("---");
+    lines.push("");
+    lines.push("## Learning Objectives");
+    lines.push("");
+    lines.push("By the end of this course, you will be able to:");
+    lines.push("");
+    for (const comp of competencies.slice(0, 6)) { // Limit to 6 for readability
+      lines.push(`- ${comp.title}`);
+    }
+    if (competencies.length > 6) {
+      lines.push(`- ...and ${competencies.length - 6} more`);
+    }
+    lines.push("");
+  }
+
+  // Each unit as a section
+  for (const unitRow of unitRows) {
+    lines.push("---");
+    lines.push("");
+    lines.push(`## ${unitRow.title}`);
+    lines.push("");
+    if (unitRow.description) {
+      lines.push(unitRow.description);
+    }
+    lines.push("");
+
+    // Get lessons for this unit
+    const lessonRows = await query<LessonRow>(
+      'SELECT * FROM lessons WHERE unit_id = ? ORDER BY "order"',
+      [unitRow.id]
+    );
+
+    // Each lesson as a slide (or vertical slides)
+    for (const lessonRow of lessonRows) {
+      lines.push("---");
+      lines.push("");
+      lines.push(`### ${lessonRow.title}`);
+      lines.push("");
+      if (lessonRow.description) {
+        lines.push(lessonRow.description);
+      }
+      lines.push("");
+
+      // Add lesson content if available
+      if (lessonRow.content_body && lessonRow.content_body.trim()) {
+        lines.push("--");
+        lines.push("");
+        lines.push("#### Content");
+        lines.push("");
+        // Truncate long content for slides
+        const content = lessonRow.content_body.trim();
+        if (content.length > 500) {
+          lines.push(content.substring(0, 500) + "...");
+        } else {
+          lines.push(content);
+        }
+        lines.push("");
+      }
+    }
+  }
+
+  // Closing slide
+  lines.push("---");
+  lines.push("");
+  lines.push("## Thank You");
+  lines.push("");
+  lines.push("Questions?");
+  lines.push("");
+
+  const markdown = lines.join("\n");
+
+  // Generate RevealJS HTML
+  const html = generateRevealJSFromMarkdown(markdown, courseRow.title, selectedTheme);
+
+  // Set response headers
+  if (download) {
+    const filename = courseRow.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+    c.header("Content-Disposition", `attachment; filename="${filename}.html"`);
+  }
+  c.header("Content-Type", "text/html; charset=utf-8");
+
+  return c.body(html);
+});
+
+// Helper function to generate RevealJS HTML from markdown
+function generateRevealJSFromMarkdown(markdown: string, title: string, theme: string): string {
+  const CDN_BASE = "https://unpkg.com/reveal.js@5";
+
+  // Parse markdown into slides
+  // Split by --- (ignoring front matter)
+  const parts = markdown.split(/\n---\s*\n/);
+
+  // Skip front matter if present
+  let startIndex = 0;
+  if (parts[0].trim().startsWith("---")) {
+    startIndex = 1;
+  }
+
+  const slidesHtml: string[] = [];
+
+  for (let i = startIndex; i < parts.length; i++) {
+    const part = parts[i].trim();
+    if (!part) continue;
+
+    // Check for vertical slides (--)
+    const verticalParts = part.split(/\n--\s*\n/);
+
+    if (verticalParts.length === 1) {
+      // Single slide
+      slidesHtml.push(`      <section data-markdown>
+        <textarea data-template>
+${part}
+        </textarea>
+      </section>`);
+    } else {
+      // Vertical slides
+      const verticalHtml = verticalParts.map(vp => `        <section data-markdown>
+          <textarea data-template>
+${vp.trim()}
+          </textarea>
+        </section>`).join("\n");
+
+      slidesHtml.push(`      <section>
+${verticalHtml}
+      </section>`);
+    }
+  }
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>${escapeHtmlForAttr(title)}</title>
+  <link rel="stylesheet" href="${CDN_BASE}/dist/reset.css">
+  <link rel="stylesheet" href="${CDN_BASE}/dist/reveal.css">
+  <link rel="stylesheet" href="${CDN_BASE}/dist/theme/${theme}.css">
+  <link rel="stylesheet" href="${CDN_BASE}/plugin/highlight/monokai.css">
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+${slidesHtml.join("\n\n")}
+    </div>
+  </div>
+
+  <script src="${CDN_BASE}/dist/reveal.js"></script>
+  <script src="${CDN_BASE}/plugin/markdown/markdown.js"></script>
+  <script src="${CDN_BASE}/plugin/highlight/highlight.js"></script>
+  <script src="${CDN_BASE}/plugin/notes/notes.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      plugins: [RevealMarkdown, RevealHighlight, RevealNotes]
+    });
+  </script>
+</body>
+</html>`;
+}
+
+function escapeHtmlForAttr(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 export { courses };
