@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Button,
@@ -15,10 +15,13 @@ import {
   useCompetencies,
   useClusters,
   useCompetency,
+  useUnits,
+  useLesson,
   apiCall,
   type Competency,
   type CompetencyCluster,
-  type CompetencyWithDetails,
+  type Unit,
+  type Lesson,
 } from "../hooks/useApi";
 import { LoadingState } from "../components/common/LoadingState";
 import { ErrorState } from "../components/common/ErrorState";
@@ -26,6 +29,10 @@ import { CompetencyList } from "../components/competencies/CompetencyList";
 import { CompetencyForm, type CompetencyFormData } from "../components/competencies/CompetencyForm";
 import { ClusterForm, type ClusterFormData } from "../components/competencies/ClusterForm";
 import { CompetencyDetail } from "../components/competencies/CompetencyDetail";
+import { ContentList } from "../components/content/ContentList";
+import { UnitForm, type UnitFormData } from "../components/content/UnitForm";
+import { LessonForm, type LessonFormData } from "../components/content/LessonForm";
+import { LessonEditor } from "../components/content/LessonEditor";
 
 export function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -45,31 +52,95 @@ export function CourseDetailPage() {
     loading: loadingClusters,
     refetch: refetchClusters,
   } = useClusters(courseId || null);
+  const {
+    data: units,
+    loading: loadingUnits,
+    refetch: refetchUnits,
+  } = useUnits(courseId || null);
 
-  // UI state
+  // Lessons state - we need to fetch lessons for all units
+  const [lessonsByUnit, setLessonsByUnit] = useState<Map<string, Lesson[]>>(new Map());
+  const [loadingLessons, setLoadingLessons] = useState(false);
+
+  // Fetch lessons for all units when units change
+  useEffect(() => {
+    if (!units || units.length === 0) {
+      setLessonsByUnit(new Map());
+      return;
+    }
+
+    const fetchAllLessons = async () => {
+      setLoadingLessons(true);
+      const lessonsMap = new Map<string, Lesson[]>();
+
+      await Promise.all(
+        units.map(async (unit) => {
+          try {
+            const res = await fetch(`/api/units/${unit.id}/lessons`);
+            if (res.ok) {
+              const lessons = await res.json();
+              lessonsMap.set(unit.id, lessons);
+            }
+          } catch (err) {
+            console.error(`Failed to fetch lessons for unit ${unit.id}`, err);
+          }
+        })
+      );
+
+      setLessonsByUnit(lessonsMap);
+      setLoadingLessons(false);
+    };
+
+    fetchAllLessons();
+  }, [units]);
+
+  // Competency UI state
   const [activeTab, setActiveTab] = useState("competencies");
   const [showCompetencyForm, setShowCompetencyForm] = useState(false);
   const [showClusterForm, setShowClusterForm] = useState(false);
-  const [editingCompetency, setEditingCompetency] = useState<Competency | null>(
-    null
-  );
-  const [editingCluster, setEditingCluster] = useState<CompetencyCluster | null>(
-    null
-  );
-  const [selectedCompetencyId, setSelectedCompetencyId] = useState<string | null>(
-    null
-  );
+  const [editingCompetency, setEditingCompetency] = useState<Competency | null>(null);
+  const [editingCluster, setEditingCluster] = useState<CompetencyCluster | null>(null);
+  const [selectedCompetencyId, setSelectedCompetencyId] = useState<string | null>(null);
   const [defaultClusterId, setDefaultClusterId] = useState<string | undefined>();
 
+  // Content UI state
+  const [showUnitForm, setShowUnitForm] = useState(false);
+  const [showLessonForm, setShowLessonForm] = useState(false);
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [createLessonForUnitId, setCreateLessonForUnitId] = useState<string | null>(null);
+
   // Fetch selected competency details
-  const {
-    data: selectedCompetency,
-    refetch: refetchSelectedCompetency,
-  } = useCompetency(selectedCompetencyId);
+  const { data: selectedCompetency, refetch: refetchSelectedCompetency } =
+    useCompetency(selectedCompetencyId);
 
-  const loading = loadingCourse || loadingCompetencies || loadingClusters;
+  // Fetch selected lesson details
+  const { data: selectedLesson, refetch: refetchSelectedLesson } =
+    useLesson(selectedLessonId);
 
-  // Handlers
+  // Find unit for selected lesson
+  const selectedLessonUnit = useMemo(() => {
+    if (!selectedLesson || !units) return null;
+    return units.find((u) => u.id === selectedLesson.unitId) || null;
+  }, [selectedLesson, units]);
+
+  const loading = loadingCourse || loadingCompetencies || loadingClusters || loadingUnits;
+
+  // Helper to refetch lessons for a specific unit
+  const refetchLessonsForUnit = useCallback(async (unitId: string) => {
+    try {
+      const res = await fetch(`/api/units/${unitId}/lessons`);
+      if (res.ok) {
+        const lessons = await res.json();
+        setLessonsByUnit((prev) => new Map(prev).set(unitId, lessons));
+      }
+    } catch (err) {
+      console.error(`Failed to refetch lessons for unit ${unitId}`, err);
+    }
+  }, []);
+
+  // ========== Competency Handlers ==========
   const handleCreateCompetency = useCallback(
     async (data: CompetencyFormData) => {
       await apiCall(`/api/courses/${courseId}/competencies`, "POST", data);
@@ -153,6 +224,135 @@ export function CourseDetailPage() {
     [selectedCompetencyId, refetchSelectedCompetency]
   );
 
+  // ========== Unit Handlers ==========
+  const handleCreateUnit = useCallback(
+    async (data: UnitFormData) => {
+      await apiCall(`/api/courses/${courseId}/units`, "POST", data);
+      refetchUnits();
+    },
+    [courseId, refetchUnits]
+  );
+
+  const handleUpdateUnit = useCallback(
+    async (data: UnitFormData) => {
+      if (!editingUnit) return;
+      await apiCall(`/api/units/${editingUnit.id}`, "PUT", data);
+      refetchUnits();
+    },
+    [editingUnit, refetchUnits]
+  );
+
+  const handleDeleteUnit = useCallback(async () => {
+    if (!editingUnit) return;
+    await apiCall(`/api/units/${editingUnit.id}`, "DELETE");
+    refetchUnits();
+    // Remove lessons for this unit from state
+    setLessonsByUnit((prev) => {
+      const next = new Map(prev);
+      next.delete(editingUnit.id);
+      return next;
+    });
+  }, [editingUnit, refetchUnits]);
+
+  const handleReorderUnit = useCallback(
+    async (unitId: string, direction: "up" | "down") => {
+      if (!units) return;
+      const sortedUnits = [...units].sort((a, b) => a.order - b.order);
+      const index = sortedUnits.findIndex((u) => u.id === unitId);
+      if (index === -1) return;
+
+      const newIndex = direction === "up" ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= sortedUnits.length) return;
+
+      // Swap orders
+      const newOrder = sortedUnits.map((u, i) => {
+        if (i === index) return { id: u.id, order: newIndex };
+        if (i === newIndex) return { id: u.id, order: index };
+        return { id: u.id, order: i };
+      });
+
+      await apiCall(`/api/courses/${courseId}/units/reorder`, "PATCH", { order: newOrder });
+      refetchUnits();
+    },
+    [courseId, units, refetchUnits]
+  );
+
+  // ========== Lesson Handlers ==========
+  const handleCreateLesson = useCallback(
+    async (data: LessonFormData) => {
+      if (!createLessonForUnitId) return;
+      await apiCall(`/api/units/${createLessonForUnitId}/lessons`, "POST", {
+        ...data,
+        content: { type: "markdown", body: "" },
+      });
+      refetchLessonsForUnit(createLessonForUnitId);
+    },
+    [createLessonForUnitId, refetchLessonsForUnit]
+  );
+
+  const handleUpdateLesson = useCallback(
+    async (data: LessonFormData) => {
+      if (!editingLesson) return;
+      await apiCall(`/api/lessons/${editingLesson.id}`, "PUT", {
+        ...data,
+        content: editingLesson.content,
+      });
+      refetchLessonsForUnit(editingLesson.unitId);
+      if (selectedLessonId === editingLesson.id) {
+        refetchSelectedLesson();
+      }
+    },
+    [editingLesson, refetchLessonsForUnit, selectedLessonId, refetchSelectedLesson]
+  );
+
+  const handleDeleteLesson = useCallback(async () => {
+    if (!editingLesson) return;
+    const unitId = editingLesson.unitId;
+    await apiCall(`/api/lessons/${editingLesson.id}`, "DELETE");
+    if (selectedLessonId === editingLesson.id) {
+      setSelectedLessonId(null);
+    }
+    refetchLessonsForUnit(unitId);
+  }, [editingLesson, selectedLessonId, refetchLessonsForUnit]);
+
+  const handleReorderLesson = useCallback(
+    async (lessonId: string, unitId: string, direction: "up" | "down") => {
+      const lessons = lessonsByUnit.get(unitId) || [];
+      const sortedLessons = [...lessons].sort((a, b) => a.order - b.order);
+      const index = sortedLessons.findIndex((l) => l.id === lessonId);
+      if (index === -1) return;
+
+      const newIndex = direction === "up" ? index - 1 : index + 1;
+      if (newIndex < 0 || newIndex >= sortedLessons.length) return;
+
+      // Swap orders
+      const newOrder = sortedLessons.map((l, i) => {
+        if (i === index) return { id: l.id, order: newIndex };
+        if (i === newIndex) return { id: l.id, order: index };
+        return { id: l.id, order: i };
+      });
+
+      await apiCall(`/api/units/${unitId}/lessons/reorder`, "PATCH", { order: newOrder });
+      refetchLessonsForUnit(unitId);
+    },
+    [lessonsByUnit, refetchLessonsForUnit]
+  );
+
+  const handleSaveLessonContent = useCallback(
+    async (content: string) => {
+      if (!selectedLesson) return;
+      await apiCall(`/api/lessons/${selectedLesson.id}`, "PUT", {
+        title: selectedLesson.title,
+        description: selectedLesson.description,
+        audienceLayer: selectedLesson.audienceLayer,
+        content: { type: "markdown", body: content },
+      });
+      refetchSelectedLesson();
+      refetchLessonsForUnit(selectedLesson.unitId);
+    },
+    [selectedLesson, refetchSelectedLesson, refetchLessonsForUnit]
+  );
+
   if (loading) {
     return (
       <div className="p-8">
@@ -168,6 +368,10 @@ export function CourseDetailPage() {
       </div>
     );
   }
+
+  // Determine what detail view to show
+  const showCompetencyDetail = selectedCompetencyId && selectedCompetency;
+  const showLessonDetail = selectedLessonId && selectedLesson && selectedLessonUnit;
 
   return (
     <div className="min-h-screen">
@@ -194,7 +398,7 @@ export function CourseDetailPage() {
 
       {/* Content */}
       <main className="p-6">
-        {selectedCompetencyId && selectedCompetency ? (
+        {showCompetencyDetail ? (
           // Competency detail view
           <CompetencyDetail
             competency={selectedCompetency}
@@ -202,9 +406,7 @@ export function CourseDetailPage() {
             clusters={clusters || []}
             onBack={() => setSelectedCompetencyId(null)}
             onEdit={() => {
-              const comp = competencies?.find(
-                (c) => c.id === selectedCompetencyId
-              );
+              const comp = competencies?.find((c) => c.id === selectedCompetencyId);
               if (comp) {
                 setEditingCompetency(comp);
                 setShowCompetencyForm(true);
@@ -214,6 +416,18 @@ export function CourseDetailPage() {
             onSaveRubric={handleSaveRubric}
             onAddDependency={handleAddDependency}
             onRemoveDependency={handleRemoveDependency}
+          />
+        ) : showLessonDetail ? (
+          // Lesson detail view
+          <LessonEditor
+            lesson={selectedLesson}
+            unit={selectedLessonUnit}
+            onBack={() => setSelectedLessonId(null)}
+            onEdit={() => {
+              setEditingLesson(selectedLesson);
+              setShowLessonForm(true);
+            }}
+            onSaveContent={handleSaveLessonContent}
           />
         ) : (
           // Main course view with tabs
@@ -247,13 +461,30 @@ export function CourseDetailPage() {
             </TabsContent>
 
             <TabsContent value="content" className="mt-6">
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground">
-                    Content management coming soon...
-                  </p>
-                </CardContent>
-              </Card>
+              {loadingLessons ? (
+                <LoadingState message="Loading content..." />
+              ) : (
+                <ContentList
+                  units={units || []}
+                  lessonsByUnit={lessonsByUnit}
+                  onSelectLesson={(lesson) => setSelectedLessonId(lesson.id)}
+                  onCreateUnit={() => {
+                    setEditingUnit(null);
+                    setShowUnitForm(true);
+                  }}
+                  onEditUnit={(unit) => {
+                    setEditingUnit(unit);
+                    setShowUnitForm(true);
+                  }}
+                  onCreateLesson={(unitId) => {
+                    setCreateLessonForUnitId(unitId);
+                    setEditingLesson(null);
+                    setShowLessonForm(true);
+                  }}
+                  onReorderUnit={handleReorderUnit}
+                  onReorderLesson={handleReorderLesson}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="scenarios" className="mt-6">
@@ -279,7 +510,7 @@ export function CourseDetailPage() {
         )}
       </main>
 
-      {/* Dialogs */}
+      {/* Competency Dialogs */}
       <CompetencyForm
         open={showCompetencyForm}
         onClose={() => {
@@ -301,6 +532,30 @@ export function CourseDetailPage() {
         }}
         onSave={editingCluster ? handleUpdateCluster : handleCreateCluster}
         cluster={editingCluster}
+      />
+
+      {/* Content Dialogs */}
+      <UnitForm
+        open={showUnitForm}
+        onClose={() => {
+          setShowUnitForm(false);
+          setEditingUnit(null);
+        }}
+        onSave={editingUnit ? handleUpdateUnit : handleCreateUnit}
+        onDelete={editingUnit ? handleDeleteUnit : undefined}
+        unit={editingUnit}
+      />
+
+      <LessonForm
+        open={showLessonForm}
+        onClose={() => {
+          setShowLessonForm(false);
+          setEditingLesson(null);
+          setCreateLessonForUnitId(null);
+        }}
+        onSave={editingLesson ? handleUpdateLesson : handleCreateLesson}
+        onDelete={editingLesson ? handleDeleteLesson : undefined}
+        lesson={editingLesson}
       />
     </div>
   );

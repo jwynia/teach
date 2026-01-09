@@ -2,7 +2,7 @@
 
 ## Current State
 
-Teach has **started Phase 3** of the feature backlog. PDF generation service is complete with student handout support. DOCX and XLSX pending.
+Teach has **started Phase 3** of the feature backlog. PDF generation service is complete and **verified working** with student handout support. All document generation API endpoints tested and operational. DOCX and XLSX services pending.
 
 ## Active Work
 
@@ -33,10 +33,11 @@ Teach has **started Phase 3** of the feature backlog. PDF generation service is 
 - [x] Create student handout spec builder
 - [x] Create database migration for generated_documents table
 - [x] Create document generation API endpoints
-- [ ] Implement DOCX service
+- [x] **Verify API endpoints working** (all 6 tested 2026-01-09)
+- [x] Implement DOCX service (`services/documents/docx.service.ts`)
+- [x] Create instructor guide spec builder (`spec-builders/instructor-guide.builder.ts`)
 - [ ] Implement XLSX service
-- [ ] Create instructor guide spec builder
-- [ ] Create grading rubric spec builder
+- [ ] Create grading rubric spec builder (XLSX)
 
 ### Completed Previously
 - [x] Define core architecture and component boundaries
@@ -48,6 +49,12 @@ Teach has **started Phase 3** of the feature backlog. PDF generation service is 
 
 | Date | Change | Impact |
 |------|--------|--------|
+| 2026-01-09 | Course Content Editor UI implemented | Content tab with Units/Lessons hierarchy, markdown editor with preview, CRUD operations |
+| 2026-01-09 | DOCX service implemented | `docxService.generate()` creates Word documents from DocxSpec objects |
+| 2026-01-09 | Instructor guide builder created | `buildInstructorGuideSpec()` generates DOCX specs with objectives, activities, timing |
+| 2026-01-09 | Document generation API verified | All 6 endpoints tested: generate, list, metadata, download, delete, course-list |
+| 2026-01-09 | Fixed env loading in authoring-api | Added `--env-file=.env` to dev script in package.json |
+| 2026-01-09 | Process manager skill created | `.claude/skills/process-manager/` for managing dev servers |
 | 2026-01-08 | PDF generation service complete | Student handout generation via pdf-lib, API endpoints, database tracking |
 | 2026-01-08 | Document generation types | Zod schemas for PDF/DOCX/XLSX specs in services/documents/types.ts |
 | 2026-01-08 | Document generation routes | POST /api/lessons/:id/documents, GET /api/documents/:id/download |
@@ -145,6 +152,21 @@ teach/
 - `.claude/skills/presentation/revealjs-generator/assets/revealjs-spec-schema.json` - JSON schema for spec validation
 - `apps/authoring-api/src/routes/courses.ts` - Added `POST /:id/export/revealjs` endpoint
 
+**DOCX Generation (New):**
+- `apps/authoring-api/src/services/documents/docx.service.ts` - DOCX generation using docx library
+- `apps/authoring-api/src/services/documents/spec-builders/instructor-guide.builder.ts` - Instructor guide spec builder
+- `apps/authoring-api/src/services/documents/index.ts` - Updated exports for docxService
+- `apps/authoring-api/src/routes/documents.ts` - Added instructor-guide handling
+
+**Course Content Editor (New):**
+- `apps/authoring-app/src/components/content/ContentList.tsx` - Unit/lesson hierarchy with reordering
+- `apps/authoring-app/src/components/content/UnitForm.tsx` - Create/edit unit dialog
+- `apps/authoring-app/src/components/content/LessonForm.tsx` - Create/edit lesson dialog
+- `apps/authoring-app/src/components/content/LessonEditor.tsx` - Lesson detail view with markdown editor
+- `apps/authoring-app/src/components/content/MarkdownEditor.tsx` - Markdown edit/preview component
+- `apps/authoring-app/src/hooks/useApi.ts` - Added Unit/Lesson types and hooks
+- `apps/authoring-app/src/pages/CourseDetailPage.tsx` - Wired up Content tab
+
 ## Blockers
 
 None currently.
@@ -155,7 +177,7 @@ Comprehensive code review completed 2026-01-07. See `context/backlog.md` → "Co
 
 ## Next Steps
 
-1. Continue Phase 3: Document generation pipeline (RevealJS complete, PDF/DOCX/XLSX pending)
+1. Continue Phase 3: Implement XLSX service and grading rubric builder
 2. Build scenario management UI in authoring-app
 3. Build progression path designer UI in authoring-app
 4. Address code review backlog items
@@ -180,4 +202,4 @@ pnpm dev
 
 ---
 
-*Last updated: 2026-01-07*
+*Last updated: 2026-01-09*

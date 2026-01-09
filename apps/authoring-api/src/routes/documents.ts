@@ -8,7 +8,9 @@ import { randomUUID } from "crypto";
 import { createHash } from "crypto";
 import {
   pdfService,
+  docxService,
   buildStudentHandoutSpec,
+  buildInstructorGuideSpec,
   DocumentGenerationRequestSchema,
   type CourseData,
   type LessonData,
@@ -205,6 +207,52 @@ lessonDocuments.post(
           // Save to storage
           const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
           const filename = `student-handout-${timestamp}.pdf`;
+          const storagePath = join(storageDir, filename);
+          await writeFile(storagePath, result.buffer);
+
+          // Calculate checksum
+          const checksum = createHash("md5").update(result.buffer).digest("hex");
+
+          // Record in database
+          const docId = randomUUID();
+          await execute(
+            `INSERT INTO generated_documents
+             (id, course_id, unit_id, lesson_id, document_type, filename, storage_path, file_size, checksum, metadata, generated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+            [
+              docId,
+              course.id,
+              unit.id,
+              lesson.id,
+              docType,
+              filename,
+              storagePath,
+              result.buffer.length,
+              checksum,
+              JSON.stringify(result.metadata),
+            ]
+          );
+
+          generated.push({
+            type: docType,
+            filename,
+            path: `/api/documents/${docId}/download`,
+            contentType: result.contentType,
+            fileSize: result.buffer.length,
+          });
+        } else if (docType === "instructor-guide") {
+          // Build spec and generate DOCX
+          const spec = buildInstructorGuideSpec(
+            courseData,
+            lessonData,
+            competencyData,
+            activityData
+          );
+          const result = await docxService.generate(spec);
+
+          // Save to storage
+          const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+          const filename = `instructor-guide-${timestamp}.docx`;
           const storagePath = join(storageDir, filename);
           await writeFile(storagePath, result.buffer);
 

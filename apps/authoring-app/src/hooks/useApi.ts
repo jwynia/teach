@@ -199,3 +199,43 @@ export function useProgressionPaths(courseId: string | null) {
 export function useProgressionPath(id: string | null) {
   return useApi<ProgressionPathWithSteps>(id ? `/api/paths/${id}` : null);
 }
+
+// Unit API
+export interface Unit {
+  id: string;
+  courseId: string;
+  title: string;
+  description: string;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useUnits(courseId: string | null) {
+  return useApi<Unit[]>(courseId ? `/api/courses/${courseId}/units` : null);
+}
+
+export function useUnit(id: string | null) {
+  return useApi<Unit>(id ? `/api/units/${id}` : null);
+}
+
+// Lesson API
+export interface Lesson {
+  id: string;
+  unitId: string;
+  title: string;
+  description: string;
+  order: number;
+  content: { type: "markdown" | "html"; body: string };
+  audienceLayer: "general" | "practitioner" | "specialist" | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function useLessons(unitId: string | null) {
+  return useApi<Lesson[]>(unitId ? `/api/units/${unitId}/lessons` : null);
+}
+
+export function useLesson(id: string | null) {
+  return useApi<Lesson>(id ? `/api/lessons/${id}` : null);
+}
