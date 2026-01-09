@@ -1,2 +1,7 @@
 node_modules/
 .turbo
+.opencode
+.devcontainer
+.opencode.json
+AGENTS.md
+setupGit.sh
