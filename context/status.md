@@ -2,7 +2,7 @@
 
 ## Current State
 
-Teach has **completed Phase 2** of the feature backlog. All competency framework APIs, UI components, and the curriculum-assistant agent are complete. Ready for Phase 3 (Document generation).
+Teach has **started Phase 3** of the feature backlog. PDF generation service is complete with student handout support. DOCX and XLSX pending.
 
 ## Active Work
 
@@ -25,6 +25,19 @@ Teach has **completed Phase 2** of the feature backlog. All competency framework
 - [x] Shared UI component library (Input, Label, Textarea, Select, Tabs, Dialog, Badge)
 - [x] Update curriculum-assistant agent with competency awareness
 
+### Phase 3: Document Generation (IN PROGRESS)
+- [x] Design document generation system (`context/document-generation.md`)
+- [x] Add pdf-lib, docx, xlsx dependencies
+- [x] Create Zod schemas for PDF/DOCX/XLSX specs (`services/documents/types.ts`)
+- [x] Implement PDF service (`services/documents/pdf.service.ts`)
+- [x] Create student handout spec builder
+- [x] Create database migration for generated_documents table
+- [x] Create document generation API endpoints
+- [ ] Implement DOCX service
+- [ ] Implement XLSX service
+- [ ] Create instructor guide spec builder
+- [ ] Create grading rubric spec builder
+
 ### Completed Previously
 - [x] Define core architecture and component boundaries
 - [x] Set up monorepo with pnpm + Turborepo
@@ -35,6 +48,9 @@ Teach has **completed Phase 2** of the feature backlog. All competency framework
 
 | Date | Change | Impact |
 |------|--------|--------|
+| 2026-01-08 | PDF generation service complete | Student handout generation via pdf-lib, API endpoints, database tracking |
+| 2026-01-08 | Document generation types | Zod schemas for PDF/DOCX/XLSX specs in services/documents/types.ts |
+| 2026-01-08 | Document generation routes | POST /api/lessons/:id/documents, GET /api/documents/:id/download |
 | 2026-01-07 | RevealJS generator skill created | New document generation target for HTML presentations, API endpoint added |
 | 2026-01-07 | Flexible LLM provider configuration | Agents now support Anthropic, OpenAI, OpenRouter, custom endpoints via env vars |
 | 2026-01-07 | Code review completed | 10 issues identified (3 high, 4 medium, 3 low), 5 good patterns documented |
@@ -63,7 +79,7 @@ See `context/backlog.md` for detailed breakdown.
 |------|-------------|--------|
 | Epic 1 | Foundation - Data Model & Database | **Complete** |
 | Epic 2 | Authoring API - CRUD Endpoints | **Complete** |
-| Epic 3 | Document Generation Pipeline | Pending |
+| Epic 3 | Document Generation Pipeline | **In Progress** (PDF complete) |
 | Epic 4 | Learning Verification System | Pending |
 | Epic 5 | Authoring UI | **In Progress** |
 | Epic 6 | Delivery UI Enhancements | Pending |

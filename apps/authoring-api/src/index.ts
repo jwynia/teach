@@ -15,6 +15,7 @@ import { activities } from "./routes/activities.js";
 import { competencies } from "./routes/competencies.js";
 import { scenarios } from "./routes/scenarios.js";
 import { paths, skipLogic } from "./routes/paths.js";
+import { lessonDocuments, documents, courseDocuments } from "./routes/documents.js";
 
 const app = new Hono();
 
@@ -76,6 +77,10 @@ app.route("/api/paths", paths);
 app.route("/api/steps", paths);
 app.route("/api/courses/:courseId/skip-logic", skipLogic);
 app.route("/api/skip-logic", skipLogic);
+// Document generation routes
+app.route("/api/lessons/:lessonId/documents", lessonDocuments);
+app.route("/api/documents", documents);
+app.route("/api/courses/:courseId/documents", courseDocuments);
 
 // Initialize Mastra routes
 const server = new MastraServer({ app, mastra });
@@ -104,6 +109,12 @@ console.log(`  Paths:        GET/POST /api/courses/:id/paths, GET/PUT/DEL /api/p
 console.log(`  Steps:        GET/POST /api/paths/:id/steps, GET/PUT/DEL /api/steps/:id`);
 console.log(`  Reorder:      PATCH /api/paths/:id/steps/reorder`);
 console.log(`  Skip Logic:   GET/POST /api/courses/:id/skip-logic, GET/PUT/DEL /api/skip-logic/:id`);
+console.log(`Document generation:`);
+console.log(`  Generate:     POST /api/lessons/:id/documents`);
+console.log(`  List:         GET /api/lessons/:id/documents`);
+console.log(`  Download:     GET /api/documents/:id/download`);
+console.log(`  Delete:       DELETE /api/documents/:id`);
+console.log(`  Course Docs:  GET /api/courses/:id/documents`);
 console.log(`Other:`);
 console.log(`  Export:       POST /api/courses/:id/export`);
 console.log(`  Agent:        POST /api/agents/curriculum-assistant/generate`);
