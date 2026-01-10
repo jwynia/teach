@@ -103,10 +103,10 @@ See `context/backlog.md` for detailed breakdown.
 ```
 teach/
 ├── apps/
-│   ├── authoring-api/     # Hono + Mastra (port 4000)
-│   ├── authoring-app/     # React + Vite (port 5173)
-│   ├── delivery-api/      # Hono + Mastra (port 4001)
-│   └── delivery-app/      # React + Vite (port 5174)
+│   ├── authoring-api/     # Hono + Mastra (port 4100)
+│   ├── authoring-app/     # React + Vite (port 4101)
+│   ├── delivery-api/      # Hono + Mastra (port 4200)
+│   └── delivery-app/      # React + Vite (port 4201)
 ├── packages/
 │   ├── ui/                # Shared shadcn components
 │   ├── types/             # Shared TypeScript types (EXTENDED)
@@ -189,12 +189,12 @@ Comprehensive code review completed 2026-01-07. See `context/backlog.md` → "Co
 pnpm install
 
 # Run authoring system
-pnpm dev:authoring-api  # Start API on port 4000
-pnpm dev:authoring-app  # Start frontend on port 5173
+pnpm dev:authoring-api  # Start API on port 4100
+pnpm dev:authoring-app  # Start frontend on port 4101
 
 # Run delivery system
-pnpm dev:delivery-api   # Start API on port 4001
-pnpm dev:delivery-app   # Start frontend on port 5174
+pnpm dev:delivery-api   # Start API on port 4200
+pnpm dev:delivery-app   # Start frontend on port 4201
 
 # Run everything
 pnpm dev

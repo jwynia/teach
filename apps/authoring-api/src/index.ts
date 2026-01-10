@@ -24,7 +24,7 @@ app.use("*", logger());
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:5173", "http://localhost:3000"],
+    origin: ["http://localhost:4101"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
   })
@@ -87,7 +87,7 @@ const server = new MastraServer({ app, mastra });
 await server.init();
 
 // Start server
-const port = parseInt(process.env.PORT || "4000");
+const port = parseInt(process.env.PORT || "4100");
 console.log(`Authoring API running at http://localhost:${port}`);
 console.log(`Content endpoints:`);
 console.log(`  Courses:      GET/POST /api/courses, GET/PUT/DEL /api/courses/:id`);

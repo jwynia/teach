@@ -2,10 +2,10 @@
   "processes": {
     "authoring-api": {
       "name": "Authoring API",
-      "port": 4000,
+      "port": 4100,
       "command": "pnpm dev:authoring-api",
       "healthCheck": {
-        "url": "http://localhost:4000/health",
+        "url": "http://localhost:4100/health",
         "timeout": 5000
       },
       "startupTime": 5000,
@@ -13,17 +13,17 @@
     },
     "authoring-app": {
       "name": "Authoring App",
-      "port": 5173,
+      "port": 4101,
       "command": "pnpm dev:authoring-app",
       "startupTime": 8000,
       "group": "authoring"
     },
     "delivery-api": {
       "name": "Delivery API",
-      "port": 4001,
+      "port": 4200,
       "command": "pnpm dev:delivery-api",
       "healthCheck": {
-        "url": "http://localhost:4001/health",
+        "url": "http://localhost:4200/health",
         "timeout": 5000
       },
       "startupTime": 5000,
@@ -31,7 +31,7 @@
     },
     "delivery-app": {
       "name": "Delivery App",
-      "port": 5174,
+      "port": 4201,
       "command": "pnpm dev:delivery-app",
       "startupTime": 8000,
       "group": "delivery"
