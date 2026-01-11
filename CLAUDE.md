@@ -16,6 +16,38 @@ Update `context/status.md` at session boundaries.
 
 Teach is a software project for researching and building course curricula with supporting teaching/coaching LLM agents. Courses are exportable into portable formats for a separate web application.
 
+## Skill Preference Guidelines
+
+**Always prefer project skills over built-in Claude Code tools when a skill exists for the task.** Skills encode domain expertise, structured methodologies, and optimizations that outperform ad-hoc tool usage.
+
+### Key Skill-to-Tool Mappings
+
+| Task | Use This Skill | Instead of |
+|------|---------------|------------|
+| Research & information gathering | `/research` | WebSearch + WebFetch sequences |
+| Fact verification | `/fact-check` | Manual source checking |
+| Complex claim analysis | `/claim-investigation` | WebSearch-based verification |
+| PDF generation | `/pdf` | Generic file operations |
+| Word documents | `/word` | Generic file operations |
+| Spreadsheets | `/spreadsheet` | Generic file operations |
+| Presentations | `/presentation` | Generic file operations |
+| Dev server management | `/process-manager` | Manual bash commands |
+| GitHub workflows | `/github-agile` | Manual gh commands |
+
+### Why Skills Are Better
+
+1. **Structured methodology** - Skills like research use multi-phase approaches (vocabulary discovery, counter-perspectives, confidence markers) that prevent common mistakes
+2. **Integrated tooling** - Research uses Tavily CLI with advanced filtering; document skills use specialized generators
+3. **Encoded expertise** - Skills capture best practices and anti-patterns learned from experience
+4. **Reproducibility** - Skill scripts can be automated and produce consistent results
+5. **Bias prevention** - Fact-check and claim-investigation skills enforce separation between generation and verification to prevent LLM self-confirmation
+
+### When Built-in Tools Are Appropriate
+
+- Quick, one-off operations where skill overhead isn't justified
+- Tasks where no skill exists yet
+- Initial exploration before committing to a structured approach
+
 ## Available Skills
 
 This project has numerous installed skills in `.claude/skills/` to support curriculum development:

@@ -236,3 +236,59 @@ When adding a new decision, use this format:
 - Real-time only: Excludes learners who need reflection time
 - Async only: Loses opportunity for adaptive follow-up
 - Separate rubrics per mode: Creates comparability issues
+
+---
+
+### DEC-009: Research-Based Slide Generation
+
+**Date**: 2026-01-10
+**Status**: Accepted
+
+**Context**: Initial LLM slide generation produced monotonous output (title + 4 bullet points for every slide), violating presentation and instructional design best practices.
+
+**Decision**: Adopt research-grounded slide generation principles from three authoritative sources:
+
+1. **Mayer's Cognitive Theory of Multimedia Learning** (Cambridge University Press)
+   - Coherence: Remove extraneous information
+   - Signaling: Highlight essential content
+   - Segmenting: One idea per slide
+   - Spatial Contiguity: Place related text/visuals together
+   - Pre-training: Introduce key terms first
+
+2. **Assertion-Evidence Framework** (Michael Alley, Penn State)
+   - Headlines are complete sentences stating the key message
+   - Body is visual evidence (diagram, image, data), not bullet lists
+   - Research shows better comprehension and retention vs. bullet slides
+
+3. **Presentation Zen** (Garr Reynolds)
+   - Signal-to-noise ratio: Every element serves a purpose
+   - Three-second rule: Content graspable in 3 seconds
+   - Visual dominance over text
+
+**Implementation**:
+- LLM prompt includes 8 slide types: assertion, definition, process, comparison, quote, question, example, summary
+- Markdown annotations: `<!-- type: X -->`, `<!-- layout: X -->`, `[IMAGE: description]`, `Note:`
+- RevealJS export parses annotations for type-specific CSS styling
+- Anti-patterns explicitly listed in prompt
+
+**Rationale**:
+- Cognitive science basis (Mayer's research) provides evidence for effectiveness
+- Assertion-evidence research shows measurable learning improvements
+- Varied slide types maintain engagement and match content purpose
+- Annotations enable enhanced rendering without breaking standard markdown
+
+**Consequences**:
+- Richer, more varied slide output
+- Visual placeholder hints require later image selection
+- More complex prompt but produces better instructional design
+- Principles documented in `context/document-generation.md`
+
+**Alternatives Considered**:
+- Simple bullet-point generation: Rejected as cognitively inferior
+- Two-phase generation (analyze then generate): Deferred as enhancement if single-prompt insufficient
+
+**Research Sources**:
+- Mayer, R.E. (2009). *Multimedia Learning*. Cambridge University Press.
+- Alley, M. (2013). *The Craft of Scientific Presentations*. Springer.
+- Reynolds, G. (2012). *Presentation Zen*. New Riders.
+- assertion-evidence.org - Penn State research

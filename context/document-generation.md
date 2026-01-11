@@ -244,11 +244,90 @@ CREATE TABLE document_generation_jobs (
 ## Course Data → Document Mapping
 
 ### Lecture Slides
-- **Title Slide**: Course.title, Lesson.title
-- **Objectives Slide**: Competency.title from lesson competencies
-- **Content Slides**: Lesson.content.body parsed into bullets
-- **Activity Slides**: Activity.title, Activity.instructions
-- **Summary Slide**: Questions prompt
+
+See [DEC-009: Research-Based Slide Generation](/context/decisions.md#dec-009-research-based-slide-generation) for the decision rationale.
+
+#### Research Foundation
+
+Slide generation follows three authoritative sources:
+
+1. **Mayer's Cognitive Theory of Multimedia Learning**
+   - Coherence: Remove extraneous information
+   - Signaling: Highlight essential content with visual cues
+   - Segmenting: One idea per slide
+   - Spatial Contiguity: Place related text/visuals together
+   - Pre-training: Introduce key terms before complex content
+   - Multimedia: Combine words and pictures
+
+2. **Assertion-Evidence Framework** (Michael Alley, Penn State)
+   - Headlines are complete sentences stating the key message (not topic phrases)
+   - Body is visual evidence (diagram, image, data), not bullet lists
+   - Research shows better comprehension and retention
+
+3. **Presentation Zen** (Garr Reynolds)
+   - Signal-to-noise ratio: Every element serves a purpose
+   - Three-second rule: Content graspable in 3 seconds
+   - Visual dominance over text
+
+#### Slide Types
+
+| Type | When to Use | Structure | Research Basis |
+|------|-------------|-----------|----------------|
+| **assertion** | Core concept | Sentence headline + visual evidence | Alley assertion-evidence |
+| **definition** | New terms | Term + one-sentence definition | Mayer pre-training |
+| **process** | Sequential steps | Numbered visual steps | Mayer segmenting |
+| **comparison** | Contrasting ideas | Side-by-side table | Mayer spatial contiguity |
+| **quote** | Memorable insight | Large quote + attribution | Reynolds signal-to-noise |
+| **question** | Engagement/reflection | Single provocative question | Mayer coherence |
+| **example** | Concrete illustration | Scenario description | Mayer multimedia |
+| **summary** | Recap | 3-5 key takeaways as sentences | Mayer segmenting |
+
+#### Markdown Annotations
+
+Slides use inline annotations for enhanced rendering:
+
+```markdown
+<!-- type: assertion -->
+<!-- layout: image-right -->
+## Complete sentence stating the key assertion
+
+[IMAGE: description of supporting visual evidence]
+
+Note: Speaker notes for the presenter
+```
+
+**Available Annotations:**
+
+| Annotation | Purpose | Values |
+|------------|---------|--------|
+| `<!-- type: X -->` | Slide type | assertion, definition, process, comparison, quote, question, example, summary |
+| `<!-- layout: X -->` | Layout hint | single, two-column, image-left, image-right, full-image |
+| `[IMAGE: desc]` | Visual placeholder | Description of needed image |
+| `[DIAGRAM: desc]` | Diagram placeholder | Description of needed diagram |
+| `Note:` | Speaker notes | RevealJS native format |
+
+#### Anti-Patterns to Avoid
+
+- Multiple bullet points per slide (violates Segmenting)
+- Topic headlines like "Benefits" instead of "AI reduces manual work by 40%" (violates assertion-evidence)
+- Walls of text (violates Three-second rule)
+- Same slide format repeated (creates monotony)
+- Decorative content that doesn't support the assertion (violates Coherence)
+
+#### Implementation
+
+- **LLM Prompt**: `apps/authoring-api/src/routes/lessons.ts` - POST /api/lessons/:id/generate-slides
+- **Annotation Parser**: `apps/authoring-api/src/routes/courses.ts` - parseSlideAnnotations()
+- **CSS Styling**: Embedded in generateRevealJSFromMarkdown() function
+
+#### Legacy Mapping (deprecated)
+- ~~Title Slide~~: Course.title, Lesson.title
+- ~~Objectives Slide~~: Competency.title from lesson competencies
+- ~~Content Slides~~: Lesson.content.body parsed into bullets
+- ~~Activity Slides~~: Activity.title, Activity.instructions
+- ~~Summary Slide~~: Questions prompt
+
+*Use slide_content field with research-based generation instead.*
 
 ### Student Handout
 - **Header**: Course.title, Lesson.title

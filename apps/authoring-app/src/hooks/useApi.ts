@@ -227,6 +227,7 @@ export interface Lesson {
   description: string;
   order: number;
   content: { type: "markdown" | "html"; body: string };
+  slideContent: string;
   audienceLayer: "general" | "practitioner" | "specialist" | null;
   createdAt: string;
   updatedAt: string;

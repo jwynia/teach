@@ -3,7 +3,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
+import { generateText } from "ai";
 import { query, queryOne, execute } from "../db/client.js";
+import { getModelFromEnv } from "../mastra/providers.js";
 import { randomUUID } from "crypto";
 
 const lessons = new Hono();
@@ -18,6 +20,7 @@ const CreateLessonSchema = z.object({
   order: z.number().optional(),
   contentType: z.enum(["markdown", "html"]).default("markdown"),
   contentBody: z.string().default(""),
+  slideContent: z.string().default(""),
   audienceLayer: z.enum(["general", "practitioner", "specialist"]).optional(),
 });
 
@@ -27,6 +30,7 @@ const UpdateLessonSchema = z.object({
   order: z.number().optional(),
   contentType: z.enum(["markdown", "html"]).optional(),
   contentBody: z.string().optional(),
+  slideContent: z.string().optional(),
   audienceLayer: z.enum(["general", "practitioner", "specialist"]).nullable().optional(),
 });
 
@@ -46,6 +50,7 @@ interface LessonRow {
   order: number;
   content_type: string;
   content_body: string;
+  slide_content: string;
   audience_layer: string | null;
   created_at: string;
   updated_at: string;
@@ -66,6 +71,7 @@ function mapLessonRow(row: LessonRow) {
       type: row.content_type,
       body: row.content_body,
     },
+    slideContent: row.slide_content,
     audienceLayer: row.audience_layer,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -119,9 +125,9 @@ lessons.post("/", zValidator("json", CreateLessonSchema), async (c) => {
   const now = new Date().toISOString();
 
   await execute(
-    `INSERT INTO lessons (id, unit_id, title, description, "order", content_type, content_body, audience_layer, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, unitId, body.title, body.description, order, body.contentType, body.contentBody, body.audienceLayer || null, now, now]
+    `INSERT INTO lessons (id, unit_id, title, description, "order", content_type, content_body, slide_content, audience_layer, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, unitId, body.title, body.description, order, body.contentType, body.contentBody, body.slideContent, body.audienceLayer || null, now, now]
   );
 
   const row = await queryOne<LessonRow>("SELECT * FROM lessons WHERE id = ?", [id]);
@@ -188,6 +194,10 @@ lessons.put("/:id", zValidator("json", UpdateLessonSchema), async (c) => {
   if (body.contentBody !== undefined) {
     updates.push("content_body = ?");
     values.push(body.contentBody);
+  }
+  if (body.slideContent !== undefined) {
+    updates.push("slide_content = ?");
+    values.push(body.slideContent);
   }
   if (body.audienceLayer !== undefined) {
     updates.push("audience_layer = ?");
@@ -288,6 +298,131 @@ lessons.delete("/:id/competencies/:competencyId", async (c) => {
   );
 
   return c.json({ success: true });
+});
+
+// POST /api/lessons/:id/generate-slides - Generate slide content from narrative using LLM
+lessons.post("/:id/generate-slides", async (c) => {
+  const id = c.req.param("id");
+
+  // Fetch the lesson
+  const row = await queryOne<LessonRow>("SELECT * FROM lessons WHERE id = ?", [id]);
+  if (!row) {
+    return c.json({ error: "Lesson not found" }, 404);
+  }
+
+  const narrativeContent = row.content_body;
+  if (!narrativeContent || narrativeContent.trim() === "") {
+    return c.json({ error: "Lesson has no narrative content to generate slides from" }, 400);
+  }
+
+  let model;
+  try {
+    model = getModelFromEnv();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to initialize LLM";
+    console.error("LLM initialization error:", message);
+    return c.json({ error: `LLM configuration error: ${message}` }, 500);
+  }
+
+  try {
+    const { text } = await generateText({
+      model,
+      system: `You are an instructional designer creating presentation slides from lesson content.
+Apply these research-backed principles:
+
+## Core Principles (Mayer's Multimedia Learning + Assertion-Evidence)
+
+1. **ONE idea per slide** - Each slide conveys a single message (Mayer's Segmenting)
+2. **Assertion headlines** - Slide titles are complete sentences stating the key point (Alley)
+3. **Visual evidence over bullets** - Support assertions with images/diagrams, not bullet lists (Alley)
+4. **Signal important content** - Use bold, emphasis for key terms (Mayer's Signaling)
+5. **Remove extraneous content** - Every element must serve learning (Mayer's Coherence)
+6. **Three-second rule** - Content should be graspable in 3 seconds (Reynolds)
+
+## Slide Types (choose based on content)
+
+### ASSERTION SLIDE (for key concepts)
+<!-- type: assertion -->
+## [Complete sentence stating the main point]
+[IMAGE: description of visual evidence supporting this assertion]
+
+### DEFINITION SLIDE (for new terms - Mayer's Pre-training)
+<!-- type: definition -->
+## [Term]
+**Definition:** One clear sentence explaining the term.
+
+### PROCESS SLIDE (for sequences - Mayer's Segmenting)
+<!-- type: process -->
+## [Process name as assertion: "X happens in Y stages"]
+1. **Stage One** — 3-5 words
+2. **Stage Two** — 3-5 words
+3. **Stage Three** — 3-5 words
+[IMAGE: flowchart or diagram suggestion]
+
+### COMPARISON SLIDE (for contrasts - Mayer's Spatial Contiguity)
+<!-- type: comparison -->
+## [Assertion comparing X and Y]
+| Aspect | X | Y |
+|--------|---|---|
+| Key difference 1 | ... | ... |
+| Key difference 2 | ... | ... |
+
+### QUOTE SLIDE (for memorable insights - Reynolds' Signal-to-Noise)
+<!-- type: quote -->
+> "The memorable quote from the content"
+
+### QUESTION SLIDE (for engagement/reflection)
+<!-- type: question -->
+## [Thought-provoking question?]
+
+### EXAMPLE SLIDE (for concrete illustrations)
+<!-- type: example -->
+## Example: [Scenario in one sentence]
+[IMAGE: visual representing the scenario]
+Brief context in 1-2 sentences maximum.
+
+### SUMMARY SLIDE (for section endings)
+<!-- type: summary -->
+## Key Takeaways
+- First key point (complete sentence)
+- Second key point (complete sentence)
+- Third key point (complete sentence)
+
+## Annotation Format
+Each slide should include metadata annotations:
+- Start with \`<!-- type: X -->\` where X is: assertion, definition, process, comparison, quote, question, example, summary
+- Add \`<!-- layout: X -->\` if needed: single (default), two-column, image-left, image-right, full-image
+- Include \`[IMAGE: description]\` for visual suggestions
+- Add \`Note:\` for speaker notes when helpful
+
+## Instructions
+1. Read the narrative and identify 4-8 key ideas worth a slide each
+2. For each idea, select the most appropriate slide type
+3. Start each slide with \`<!-- type: X -->\` annotation
+4. Add \`<!-- layout: X -->\` if a specific layout is needed
+5. Write the slide using the format for that type
+6. Headlines must be complete sentences (assertions), not topic phrases
+7. Include [IMAGE: description] for visual suggestions
+8. Add Note: for speaker notes when helpful
+9. VARY the slide types - never use the same type twice in a row
+10. Output ONLY the slide markdown with annotations, no commentary
+
+## Anti-Patterns to Avoid
+- Multiple bullet points per slide (violates Segmenting)
+- Topic headlines like "Benefits" instead of "AI reduces manual work by 40%"
+- Walls of text (violates Three-second rule)
+- Same slide format repeated (creates monotony)
+- Decorative content that doesn't support the assertion (violates Coherence)
+- Missing type annotations`,
+      prompt: `Convert this lesson narrative into slide-ready markdown with annotations:\n\n${narrativeContent}`,
+    });
+
+    return c.json({ slideContent: text });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "LLM generation failed";
+    console.error("LLM generation error:", error);
+    return c.json({ error: `LLM generation failed: ${message}` }, 500);
+  }
 });
 
 export { lessons };

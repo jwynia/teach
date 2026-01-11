@@ -342,16 +342,34 @@ export function CourseDetailPage() {
     async (content: string) => {
       if (!selectedLesson) return;
       await apiCall(`/api/lessons/${selectedLesson.id}`, "PUT", {
-        title: selectedLesson.title,
-        description: selectedLesson.description,
-        audienceLayer: selectedLesson.audienceLayer,
-        content: { type: "markdown", body: content },
+        contentBody: content,
       });
       refetchSelectedLesson();
       refetchLessonsForUnit(selectedLesson.unitId);
     },
     [selectedLesson, refetchSelectedLesson, refetchLessonsForUnit]
   );
+
+  const handleSaveSlideContent = useCallback(
+    async (slideContent: string) => {
+      if (!selectedLesson) return;
+      await apiCall(`/api/lessons/${selectedLesson.id}`, "PUT", {
+        slideContent,
+      });
+      refetchSelectedLesson();
+      refetchLessonsForUnit(selectedLesson.unitId);
+    },
+    [selectedLesson, refetchSelectedLesson, refetchLessonsForUnit]
+  );
+
+  const handleGenerateSlides = useCallback(async (): Promise<string> => {
+    if (!selectedLesson) return "";
+    const result = await apiCall<{ slideContent: string }>(
+      `/api/lessons/${selectedLesson.id}/generate-slides`,
+      "POST"
+    );
+    return result.slideContent;
+  }, [selectedLesson]);
 
   if (loading) {
     return (
@@ -428,6 +446,8 @@ export function CourseDetailPage() {
               setShowLessonForm(true);
             }}
             onSaveContent={handleSaveLessonContent}
+            onSaveSlideContent={handleSaveSlideContent}
+            onGenerateSlides={handleGenerateSlides}
           />
         ) : (
           // Main course view with tabs

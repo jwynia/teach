@@ -57,6 +57,7 @@ interface LessonRow {
   order: number;
   content_type: string;
   content_body: string;
+  slide_content: string;
   audience_layer: string | null;
   created_at: string;
   updated_at: string;
@@ -427,8 +428,9 @@ courses.post("/:id/export", async (c) => {
   return c.json(courseExport);
 });
 
-// POST /api/courses/:id/export/revealjs - Export course as RevealJS presentation
-courses.post("/:id/export/revealjs", async (c) => {
+// GET /api/courses/:id/export/revealjs - Export course as RevealJS presentation
+// Supports ?theme=black|white|league|etc and ?download=true for file download
+courses.get("/:id/export/revealjs", async (c) => {
   const id = c.req.param("id");
   const theme = c.req.query("theme") || "black";
   const download = c.req.query("download") === "true";
@@ -511,32 +513,34 @@ courses.post("/:id/export/revealjs", async (c) => {
       [unitRow.id]
     );
 
-    // Each lesson as a slide (or vertical slides)
+    // Each lesson as a slide with key points extracted
     for (const lessonRow of lessonRows) {
       lines.push("---");
       lines.push("");
       lines.push(`### ${lessonRow.title}`);
       lines.push("");
-      if (lessonRow.description) {
+
+      // Use slide_content if available, otherwise extract from narrative
+      if (lessonRow.slide_content && lessonRow.slide_content.trim()) {
+        // slide_content is already formatted markdown - append directly
+        // (strip any leading # headers since we already have the lesson title)
+        const slideLines = lessonRow.slide_content.split("\n")
+          .filter(line => !line.match(/^##?\s/)); // Remove H1/H2 headers
+        lines.push(...slideLines);
+      } else if (lessonRow.content_body && lessonRow.content_body.trim()) {
+        // Fall back to extracting key points from narrative content
+        const keyPoints = extractKeyPointsForSlides(lessonRow.content_body);
+        if (keyPoints.length > 0) {
+          for (const point of keyPoints) {
+            lines.push(`- ${point}`);
+          }
+        } else if (lessonRow.description) {
+          lines.push(lessonRow.description);
+        }
+      } else if (lessonRow.description) {
         lines.push(lessonRow.description);
       }
       lines.push("");
-
-      // Add lesson content if available
-      if (lessonRow.content_body && lessonRow.content_body.trim()) {
-        lines.push("--");
-        lines.push("");
-        lines.push("#### Content");
-        lines.push("");
-        // Truncate long content for slides
-        const content = lessonRow.content_body.trim();
-        if (content.length > 500) {
-          lines.push(content.substring(0, 500) + "...");
-        } else {
-          lines.push(content);
-        }
-        lines.push("");
-      }
     }
   }
 
@@ -563,6 +567,164 @@ courses.post("/:id/export/revealjs", async (c) => {
   return c.body(html);
 });
 
+// Helper function to extract key points from markdown for slides
+function extractKeyPointsForSlides(markdown: string): string[] {
+  const points: string[] = [];
+  const lines = markdown.split('\n');
+
+  // First, try to extract H2 headings as key topics
+  const h2s = lines
+    .filter(line => line.startsWith('## '))
+    .map(line => line.replace(/^##\s+/, '').trim())
+    .filter(h => h.length > 0 && h.length < 80); // Skip very long headings
+
+  if (h2s.length >= 3 && h2s.length <= 8) {
+    return h2s.slice(0, 6); // Return up to 6 H2 headings
+  }
+
+  // Otherwise, look for bullet points in the first part of the content
+  const bulletPattern = /^[-*]\s+(.+)$/;
+  for (const line of lines.slice(0, 50)) { // Check first 50 lines
+    const match = line.match(bulletPattern);
+    if (match && match[1].length < 100) {
+      points.push(match[1].trim());
+      if (points.length >= 6) break;
+    }
+  }
+
+  if (points.length >= 3) {
+    return points;
+  }
+
+  // Fallback: extract first paragraph after title
+  let inFirstPara = false;
+  let firstPara = '';
+  for (const line of lines) {
+    if (line.startsWith('#')) {
+      inFirstPara = true;
+      continue;
+    }
+    if (inFirstPara && line.trim() === '') {
+      if (firstPara) break;
+      continue;
+    }
+    if (inFirstPara && line.trim()) {
+      firstPara += (firstPara ? ' ' : '') + line.trim();
+    }
+  }
+
+  if (firstPara && firstPara.length > 20) {
+    // Truncate to ~150 chars at word boundary
+    if (firstPara.length > 150) {
+      const truncated = firstPara.substring(0, 150);
+      const lastSpace = truncated.lastIndexOf(' ');
+      return [truncated.substring(0, lastSpace) + '...'];
+    }
+    return [firstPara];
+  }
+
+  return [];
+}
+
+// Interface for parsed slide annotations
+interface SlideAnnotations {
+  type: string;
+  layout: string;
+  imageHint: string | null;
+  content: string;
+}
+
+// Parse slide annotations from markdown content
+function parseSlideAnnotations(slideMarkdown: string): SlideAnnotations {
+  const typeMatch = slideMarkdown.match(/<!--\s*type:\s*(\w+)\s*-->/);
+  const layoutMatch = slideMarkdown.match(/<!--\s*layout:\s*([\w-]+)\s*-->/);
+  const imageMatch = slideMarkdown.match(/\[IMAGE:\s*([^\]]+)\]/);
+  const diagramMatch = slideMarkdown.match(/\[DIAGRAM:\s*([^\]]+)\]/);
+
+  // Strip annotations from display content but keep structure
+  let content = slideMarkdown
+    .replace(/<!--\s*type:\s*\w+\s*-->/g, '')
+    .replace(/<!--\s*layout:\s*[\w-]+\s*-->/g, '')
+    .replace(/<!--\s*emphasis:\s*\w+\s*-->/g, '')
+    .trim();
+
+  // Transform [IMAGE: ...] into a visual placeholder
+  content = content.replace(
+    /\[IMAGE:\s*([^\]]+)\]/g,
+    '<div class="image-placeholder">📊 $1</div>'
+  );
+
+  // Transform [DIAGRAM: ...] into a visual placeholder
+  content = content.replace(
+    /\[DIAGRAM:\s*([^\]]+)\]/g,
+    '<div class="diagram-placeholder">📈 $1</div>'
+  );
+
+  // Transform [ICON: ...] into emoji hint
+  content = content.replace(
+    /\[ICON:\s*([^\]]+)\]/g,
+    '<!-- icon: $1 -->'
+  );
+
+  return {
+    type: typeMatch?.[1] || 'default',
+    layout: layoutMatch?.[1] || 'single',
+    imageHint: imageMatch?.[1] || diagramMatch?.[1] || null,
+    content
+  };
+}
+
+// Apply type-specific CSS classes to slide content
+function getSlideClasses(type: string, layout: string): string {
+  const classes: string[] = [];
+
+  // Type-based styling
+  switch (type) {
+    case 'quote':
+      classes.push('slide-quote');
+      break;
+    case 'definition':
+      classes.push('slide-definition');
+      break;
+    case 'question':
+      classes.push('slide-question');
+      break;
+    case 'comparison':
+      classes.push('slide-comparison');
+      break;
+    case 'process':
+      classes.push('slide-process');
+      break;
+    case 'summary':
+      classes.push('slide-summary');
+      break;
+    case 'assertion':
+      classes.push('slide-assertion');
+      break;
+    case 'example':
+      classes.push('slide-example');
+      break;
+  }
+
+  // Layout-based styling
+  switch (layout) {
+    case 'two-column':
+      classes.push('layout-two-column');
+      break;
+    case 'image-left':
+      classes.push('layout-image-left');
+      break;
+    case 'image-right':
+      classes.push('layout-image-right');
+      break;
+    case 'full-image':
+      classes.push('layout-full-image');
+      break;
+  }
+
+  return classes.join(' ');
+}
+
 // Helper function to generate RevealJS HTML from markdown
 function generateRevealJSFromMarkdown(markdown: string, title: string, theme: string): string {
   const CDN_BASE = "https://unpkg.com/reveal.js@5";
@@ -587,25 +749,105 @@ function generateRevealJSFromMarkdown(markdown: string, title: string, theme: st
     const verticalParts = part.split(/\n--\s*\n/);
 
     if (verticalParts.length === 1) {
-      // Single slide
-      slidesHtml.push(`      <section data-markdown>
+      // Single slide - parse annotations
+      const annotations = parseSlideAnnotations(part);
+      const classes = getSlideClasses(annotations.type, annotations.layout);
+      const classAttr = classes ? ` class="${classes}"` : '';
+
+      slidesHtml.push(`      <section data-markdown${classAttr}>
         <textarea data-template>
-${part}
+${annotations.content}
         </textarea>
       </section>`);
     } else {
       // Vertical slides
-      const verticalHtml = verticalParts.map(vp => `        <section data-markdown>
+      const verticalHtml = verticalParts.map(vp => {
+        const annotations = parseSlideAnnotations(vp);
+        const classes = getSlideClasses(annotations.type, annotations.layout);
+        const classAttr = classes ? ` class="${classes}"` : '';
+
+        return `        <section data-markdown${classAttr}>
           <textarea data-template>
-${vp.trim()}
+${annotations.content}
           </textarea>
-        </section>`).join("\n");
+        </section>`;
+      }).join("\n");
 
       slidesHtml.push(`      <section>
 ${verticalHtml}
       </section>`);
     }
   }
+
+  // Custom CSS for slide types
+  const customCSS = `
+  <style>
+    /* Slide type styles */
+    .slide-quote blockquote {
+      font-size: 1.4em;
+      font-style: italic;
+      border-left: 4px solid currentColor;
+      padding-left: 1em;
+      margin: 1em 0;
+    }
+    .slide-definition h2 {
+      color: var(--r-link-color);
+    }
+    .slide-definition strong {
+      font-size: 1.1em;
+    }
+    .slide-question h2 {
+      font-size: 1.8em;
+      text-align: center;
+    }
+    .slide-comparison table {
+      width: 100%;
+      margin: 1em 0;
+    }
+    .slide-comparison th, .slide-comparison td {
+      padding: 0.5em;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .slide-process ol {
+      font-size: 0.9em;
+    }
+    .slide-process li strong {
+      color: var(--r-link-color);
+    }
+    .slide-summary ul {
+      list-style: none;
+      padding: 0;
+    }
+    .slide-summary li {
+      padding: 0.3em 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .slide-summary li:before {
+      content: "✓ ";
+      color: var(--r-link-color);
+    }
+
+    /* Visual placeholder styles */
+    .image-placeholder, .diagram-placeholder {
+      background: rgba(255,255,255,0.1);
+      border: 2px dashed rgba(255,255,255,0.3);
+      border-radius: 8px;
+      padding: 2em;
+      margin: 1em 0;
+      font-style: italic;
+      opacity: 0.8;
+    }
+
+    /* Layout styles */
+    .layout-two-column .reveal-viewport {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    .layout-image-left, .layout-image-right {
+      display: flex;
+      align-items: center;
+    }
+  </style>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -617,6 +859,7 @@ ${verticalHtml}
   <link rel="stylesheet" href="${CDN_BASE}/dist/reveal.css">
   <link rel="stylesheet" href="${CDN_BASE}/dist/theme/${theme}.css">
   <link rel="stylesheet" href="${CDN_BASE}/plugin/highlight/monokai.css">
+  ${customCSS}
 </head>
 <body>
   <div class="reveal">

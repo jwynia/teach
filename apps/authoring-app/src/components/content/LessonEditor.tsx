@@ -7,8 +7,12 @@ import {
   CardContent,
   Button,
   Badge,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
 } from "@teach/ui";
-import { ArrowLeft, Edit2 } from "lucide-react";
+import { ArrowLeft, Edit2, Sparkles } from "lucide-react";
 import type { Lesson, Unit } from "../../hooks/useApi";
 import { MarkdownEditor } from "./MarkdownEditor";
 
@@ -18,6 +22,8 @@ interface LessonEditorProps {
   onBack: () => void;
   onEdit: () => void;
   onSaveContent: (content: string) => Promise<void>;
+  onSaveSlideContent: (slideContent: string) => Promise<void>;
+  onGenerateSlides?: () => Promise<string>;
 }
 
 const audienceLabels = {
@@ -38,23 +44,56 @@ export function LessonEditor({
   onBack,
   onEdit,
   onSaveContent,
+  onSaveSlideContent,
+  onGenerateSlides,
 }: LessonEditorProps) {
-  const [content, setContent] = useState(lesson.content.body);
-  const [saving, setSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [narrativeContent, setNarrativeContent] = useState(lesson.content.body);
+  const [slideContent, setSlideContent] = useState(lesson.slideContent || "");
+  const [savingNarrative, setSavingNarrative] = useState(false);
+  const [savingSlides, setSavingSlides] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [hasNarrativeChanges, setHasNarrativeChanges] = useState(false);
+  const [hasSlideChanges, setHasSlideChanges] = useState(false);
 
-  const handleContentChange = (newContent: string) => {
-    setContent(newContent);
-    setHasChanges(newContent !== lesson.content.body);
+  const handleNarrativeChange = (newContent: string) => {
+    setNarrativeContent(newContent);
+    setHasNarrativeChanges(newContent !== lesson.content.body);
   };
 
-  const handleSave = async () => {
-    setSaving(true);
+  const handleSlideChange = (newContent: string) => {
+    setSlideContent(newContent);
+    setHasSlideChanges(newContent !== (lesson.slideContent || ""));
+  };
+
+  const handleSaveNarrative = async () => {
+    setSavingNarrative(true);
     try {
-      await onSaveContent(content);
-      setHasChanges(false);
+      await onSaveContent(narrativeContent);
+      setHasNarrativeChanges(false);
     } finally {
-      setSaving(false);
+      setSavingNarrative(false);
+    }
+  };
+
+  const handleSaveSlides = async () => {
+    setSavingSlides(true);
+    try {
+      await onSaveSlideContent(slideContent);
+      setHasSlideChanges(false);
+    } finally {
+      setSavingSlides(false);
+    }
+  };
+
+  const handleGenerateSlides = async () => {
+    if (!onGenerateSlides) return;
+    setGenerating(true);
+    try {
+      const generated = await onGenerateSlides();
+      setSlideContent(generated);
+      setHasSlideChanges(generated !== (lesson.slideContent || ""));
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -98,41 +137,109 @@ export function LessonEditor({
         </CardHeader>
       </Card>
 
-      {/* Content Editor */}
+      {/* Content Editor with Tabs */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Lesson Content</CardTitle>
-              <CardDescription>
-                Write your lesson content using markdown formatting
-              </CardDescription>
-            </div>
-            {hasChanges && (
-              <Badge variant="outline" className="text-amber-600">
-                Unsaved changes
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <MarkdownEditor
-            value={content}
-            onChange={handleContentChange}
-            onSave={handleSave}
-            saving={saving}
-            placeholder="Start writing your lesson content here...
+        <CardContent className="pt-6">
+          <Tabs defaultValue="narrative">
+            <TabsList>
+              <TabsTrigger value="narrative">
+                Narrative
+                {hasNarrativeChanges && (
+                  <span className="ml-2 h-2 w-2 rounded-full bg-amber-500" />
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="slides">
+                Slides
+                {hasSlideChanges && (
+                  <span className="ml-2 h-2 w-2 rounded-full bg-amber-500" />
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="narrative" className="mt-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Lesson Narrative</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Full lesson content and speaker notes
+                    </p>
+                  </div>
+                  {hasNarrativeChanges && (
+                    <Badge variant="outline" className="text-amber-600">
+                      Unsaved changes
+                    </Badge>
+                  )}
+                </div>
+                <MarkdownEditor
+                  value={narrativeContent}
+                  onChange={handleNarrativeChange}
+                  onSave={handleSaveNarrative}
+                  saving={savingNarrative}
+                  placeholder="Write your full lesson content here...
+
+## Introduction
+
+Start with context and why this matters.
 
 ## Key Concepts
 
-- First concept
-- Second concept
+Explain the main ideas in detail.
 
-## Activities
+## Summary
 
-1. Activity one
-2. Activity two"
-          />
+Wrap up with key takeaways."
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="slides" className="mt-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium">Slide Content</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Condensed bullet points for presentation slides
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {hasSlideChanges && (
+                      <Badge variant="outline" className="text-amber-600">
+                        Unsaved changes
+                      </Badge>
+                    )}
+                    {onGenerateSlides && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateSlides}
+                        disabled={generating || !narrativeContent}
+                      >
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        {generating ? "Generating..." : "Generate from Narrative"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <MarkdownEditor
+                  value={slideContent}
+                  onChange={handleSlideChange}
+                  onSave={handleSaveSlides}
+                  saving={savingSlides}
+                  placeholder="## Slide Title
+
+- Key point 1 (keep under 10 words)
+- Key point 2
+- Key point 3
+
+## Next Slide
+
+- Another key point
+- Supporting detail"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

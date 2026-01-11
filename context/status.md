@@ -49,6 +49,9 @@ Teach has **started Phase 3** of the feature backlog. PDF generation service is 
 
 | Date | Change | Impact |
 |------|--------|--------|
+| 2026-01-10 | Research-based slide generation (DEC-009) | LLM generates varied slide types based on Mayer, Alley, Reynolds research; see `context/document-generation.md` |
+| 2026-01-10 | Slide annotation system | Markdown annotations for type/layout/visuals parsed for enhanced RevealJS rendering |
+| 2026-01-10 | teach-course-builder skill created | CLI scripts to transform source documents into courses via authoring API |
 | 2026-01-09 | Course Content Editor UI implemented | Content tab with Units/Lessons hierarchy, markdown editor with preview, CRUD operations |
 | 2026-01-09 | DOCX service implemented | `docxService.generate()` creates Word documents from DocxSpec objects |
 | 2026-01-09 | Instructor guide builder created | `buildInstructorGuideSpec()` generates DOCX specs with objectives, activities, timing |
@@ -167,6 +170,17 @@ teach/
 - `apps/authoring-app/src/hooks/useApi.ts` - Added Unit/Lesson types and hooks
 - `apps/authoring-app/src/pages/CourseDetailPage.tsx` - Wired up Content tab
 
+**teach-course-builder Skill (New):**
+- `.claude/skills/teach-course-builder/SKILL.md` - Skill documentation and workflow
+- `.claude/skills/teach-course-builder/scripts/api-client.ts` - Shared API client module
+- `.claude/skills/teach-course-builder/scripts/analyze-sources.ts` - Analyze source documents
+- `.claude/skills/teach-course-builder/scripts/create-course.ts` - Create course via API
+- `.claude/skills/teach-course-builder/scripts/add-unit.ts` - Add unit to course
+- `.claude/skills/teach-course-builder/scripts/add-lesson.ts` - Add lesson to unit
+- `.claude/skills/teach-course-builder/scripts/add-competency.ts` - Add competency to course
+- `.claude/skills/teach-course-builder/scripts/list-courses.ts` - List existing courses
+- `.claude/skills/teach-course-builder/templates/course-plan.md` - Course plan template
+
 ## Blockers
 
 None currently.
@@ -202,4 +216,4 @@ pnpm dev
 
 ---
 
-*Last updated: 2026-01-09*
+*Last updated: 2026-01-10*
