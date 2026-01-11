@@ -49,6 +49,9 @@ Teach has **started Phase 3** of the feature backlog. PDF generation service is 
 
 | Date | Change | Impact |
 |------|--------|--------|
+| 2026-01-10 | RevealJS presentation theming system | 8 pre-built themes with color palettes, section backgrounds, custom theme generator from seed colors |
+| 2026-01-10 | Presentation theme UI | Settings tab in CourseDetailPage with ThemeSelector component for choosing/generating themes |
+| 2026-01-10 | Theme API endpoints | CRUD for themes, course theme assignment, theme generation from seed color |
 | 2026-01-10 | Research-based slide generation (DEC-009) | LLM generates varied slide types based on Mayer, Alley, Reynolds research; see `context/document-generation.md` |
 | 2026-01-10 | Slide annotation system | Markdown annotations for type/layout/visuals parsed for enhanced RevealJS rendering |
 | 2026-01-10 | teach-course-builder skill created | CLI scripts to transform source documents into courses via authoring API |
@@ -180,6 +183,15 @@ teach/
 - `.claude/skills/teach-course-builder/scripts/add-competency.ts` - Add competency to course
 - `.claude/skills/teach-course-builder/scripts/list-courses.ts` - List existing courses
 - `.claude/skills/teach-course-builder/templates/course-plan.md` - Course plan template
+
+**Presentation Theming System (New):**
+- `apps/authoring-api/src/db/migrations/004_add_presentation_themes.sql` - Theme table and 8 pre-built themes
+- `apps/authoring-api/src/services/themes/types.ts` - Theme type definitions and Zod schemas
+- `apps/authoring-api/src/services/themes/generator.ts` - Color palette and theme CSS generation
+- `apps/authoring-api/src/routes/themes.ts` - Theme CRUD and course theme endpoints
+- `apps/authoring-api/src/routes/courses.ts` - Updated RevealJS export to use stored themes
+- `apps/authoring-app/src/components/settings/ThemeSelector.tsx` - Theme selection UI
+- `apps/authoring-app/src/hooks/useApi.ts` - Added theme types and hooks
 
 ## Blockers
 

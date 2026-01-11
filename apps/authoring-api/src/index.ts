@@ -16,6 +16,7 @@ import { competencies } from "./routes/competencies.js";
 import { scenarios } from "./routes/scenarios.js";
 import { paths, skipLogic } from "./routes/paths.js";
 import { lessonDocuments, documents, courseDocuments } from "./routes/documents.js";
+import { themes, courseThemes } from "./routes/themes.js";
 
 const app = new Hono();
 
@@ -81,6 +82,9 @@ app.route("/api/skip-logic", skipLogic);
 app.route("/api/lessons/:lessonId/documents", lessonDocuments);
 app.route("/api/documents", documents);
 app.route("/api/courses/:courseId/documents", courseDocuments);
+// Presentation theme routes
+app.route("/api/presentation-themes", themes);
+app.route("/api/courses/:courseId/theme", courseThemes);
 
 // Initialize Mastra routes
 const server = new MastraServer({ app, mastra });
@@ -115,8 +119,15 @@ console.log(`  List:         GET /api/lessons/:id/documents`);
 console.log(`  Download:     GET /api/documents/:id/download`);
 console.log(`  Delete:       DELETE /api/documents/:id`);
 console.log(`  Course Docs:  GET /api/courses/:id/documents`);
+console.log(`Presentation themes:`);
+console.log(`  List themes:  GET /api/presentation-themes`);
+console.log(`  Get theme:    GET /api/presentation-themes/:id`);
+console.log(`  Create:       POST /api/presentation-themes`);
+console.log(`  Generate:     POST /api/presentation-themes/generate`);
+console.log(`  Course theme: GET/PUT/DEL /api/courses/:id/theme`);
 console.log(`Other:`);
 console.log(`  Export:       POST /api/courses/:id/export`);
+console.log(`  RevealJS:     GET /api/courses/:id/export/revealjs`);
 console.log(`  Agent:        POST /api/agents/curriculum-assistant/generate`);
 console.log(`Database: ./data/authoring.db`);
 

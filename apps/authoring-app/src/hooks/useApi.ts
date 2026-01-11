@@ -240,3 +240,76 @@ export function useLessons(unitId: string | null) {
 export function useLesson(id: string | null) {
   return useApi<Lesson>(id ? `/api/lessons/${id}` : null);
 }
+
+// Presentation Theme API
+export interface ColorScale {
+  "50": string;
+  "100": string;
+  "200": string;
+  "300": string;
+  "400": string;
+  "500": string;
+  "600": string;
+  "700": string;
+  "800": string;
+  "900": string;
+  "950": string;
+}
+
+export interface Palette {
+  primary: ColorScale;
+  secondary?: ColorScale;
+  accent?: ColorScale;
+  neutral: ColorScale;
+}
+
+export interface SectionColors {
+  title: string;
+  unit: string;
+  content: string;
+  summary: string;
+  quote: string;
+  question: string;
+}
+
+export interface Typography {
+  displayFont: string;
+  bodyFont: string;
+}
+
+export interface PresentationTheme {
+  id: string;
+  name: string;
+  description: string | null;
+  isBuiltin: boolean;
+  palette: Palette;
+  sectionColors: SectionColors;
+  typography: Typography | null;
+  baseTheme: string;
+  customCss: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CourseThemeResponse {
+  theme: PresentationTheme | null;
+  overrides: {
+    sectionColors?: Partial<SectionColors>;
+    customCss?: string;
+  } | null;
+  message?: string;
+}
+
+export function usePresentationThemes() {
+  return useApi<PresentationTheme[]>("/api/presentation-themes");
+}
+
+export function usePresentationTheme(id: string | null) {
+  return useApi<PresentationTheme>(id ? `/api/presentation-themes/${id}` : null);
+}
+
+export function useCourseTheme(courseId: string | null) {
+  return useApi<CourseThemeResponse>(
+    courseId ? `/api/courses/${courseId}/theme` : null
+  );
+}

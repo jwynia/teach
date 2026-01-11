@@ -5,6 +5,13 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { query, queryOne, execute, transaction } from "../db/client.js";
 import { randomUUID } from "crypto";
+import {
+  mapThemeRow,
+  generateThemeCSS,
+  type PresentationThemeRow,
+  type PresentationTheme,
+  type SectionColors,
+} from "../services/themes/index.js";
 
 const courses = new Hono();
 
@@ -35,6 +42,8 @@ interface CourseRow {
   description: string;
   target_audiences: string;
   default_progression_path_id: string | null;
+  presentation_theme_id: string | null;
+  theme_overrides: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -429,15 +438,16 @@ courses.post("/:id/export", async (c) => {
 });
 
 // GET /api/courses/:id/export/revealjs - Export course as RevealJS presentation
-// Supports ?theme=black|white|league|etc and ?download=true for file download
+// Now uses course's stored presentation theme, with fallback to query params
+// Supports ?theme=black|white|league|etc (fallback), ?theme-id=<id> (override), ?download=true
 courses.get("/:id/export/revealjs", async (c) => {
   const id = c.req.param("id");
-  const theme = c.req.query("theme") || "black";
+  const themeOverride = c.req.query("theme");
+  const themeIdOverride = c.req.query("theme-id");
   const download = c.req.query("download") === "true";
 
-  // Validate theme
+  // Valid RevealJS base themes
   const validThemes = ["black", "white", "league", "beige", "night", "serif", "simple", "solarized", "blood", "moon"];
-  const selectedTheme = validThemes.includes(theme) ? theme : "black";
 
   // Get course
   const courseRow = await queryOne<CourseRow>(
@@ -447,6 +457,51 @@ courses.get("/:id/export/revealjs", async (c) => {
 
   if (!courseRow) {
     return c.json({ error: "Course not found" }, 404);
+  }
+
+  // Determine theme to use:
+  // 1. If theme-id query param, use that theme
+  // 2. If course has a presentation_theme_id, use that
+  // 3. If theme query param, use that as base theme (legacy)
+  // 4. Default to 'black'
+
+  let presentationTheme: PresentationTheme | null = null;
+  let themeOverrides: { sectionColors?: Partial<SectionColors>; customCss?: string } | null = null;
+  let baseTheme = "black";
+
+  if (themeIdOverride) {
+    // Use override theme
+    const themeRow = await queryOne<PresentationThemeRow>(
+      "SELECT * FROM presentation_themes WHERE id = ?",
+      [themeIdOverride]
+    );
+    if (themeRow) {
+      presentationTheme = mapThemeRow(themeRow);
+      baseTheme = presentationTheme.baseTheme;
+    }
+  } else if (courseRow.presentation_theme_id) {
+    // Use course's stored theme
+    const themeRow = await queryOne<PresentationThemeRow>(
+      "SELECT * FROM presentation_themes WHERE id = ?",
+      [courseRow.presentation_theme_id]
+    );
+    if (themeRow) {
+      presentationTheme = mapThemeRow(themeRow);
+      baseTheme = presentationTheme.baseTheme;
+      // Apply course-level overrides if any
+      if (courseRow.theme_overrides) {
+        themeOverrides = JSON.parse(courseRow.theme_overrides);
+      }
+    }
+  } else if (themeOverride && validThemes.includes(themeOverride)) {
+    // Legacy: use base theme directly
+    baseTheme = themeOverride;
+  }
+
+  // Generate theme CSS if we have a presentation theme
+  let themeCSS: string | undefined;
+  if (presentationTheme) {
+    themeCSS = generateThemeCSS(presentationTheme, themeOverrides || undefined);
   }
 
   // Get units with lessons
@@ -467,7 +522,7 @@ courses.get("/:id/export/revealjs", async (c) => {
   // Front matter
   lines.push("---");
   lines.push(`title: ${courseRow.title}`);
-  lines.push(`theme: ${selectedTheme}`);
+  lines.push(`theme: ${baseTheme}`);
   lines.push("---");
   lines.push("");
 
@@ -554,8 +609,8 @@ courses.get("/:id/export/revealjs", async (c) => {
 
   const markdown = lines.join("\n");
 
-  // Generate RevealJS HTML
-  const html = generateRevealJSFromMarkdown(markdown, courseRow.title, selectedTheme);
+  // Generate RevealJS HTML with theme
+  const html = generateRevealJSFromMarkdown(markdown, courseRow.title, baseTheme, themeCSS);
 
   // Set response headers
   if (download) {
@@ -683,6 +738,17 @@ function getSlideClasses(type: string, layout: string): string {
     case 'quote':
       classes.push('slide-quote');
       break;
+    case 'big-quote':
+    case 'giant-quote':
+      classes.push('slide-big-quote');
+      break;
+    case 'full-image':
+    case 'image':
+      classes.push('slide-full-image');
+      break;
+    case 'title':
+      classes.push('slide-title');
+      break;
     case 'definition':
       classes.push('slide-definition');
       break;
@@ -726,7 +792,12 @@ function getSlideClasses(type: string, layout: string): string {
 }
 
 // Helper function to generate RevealJS HTML from markdown
-function generateRevealJSFromMarkdown(markdown: string, title: string, theme: string): string {
+function generateRevealJSFromMarkdown(
+  markdown: string,
+  title: string,
+  theme: string,
+  themeCSS?: string
+): string {
   const CDN_BASE = "https://unpkg.com/reveal.js@5";
 
   // Parse markdown into slides
@@ -790,6 +861,112 @@ ${verticalHtml}
       padding-left: 1em;
       margin: 1em 0;
     }
+
+    /* Big/Giant Quote - dramatic full-screen quote */
+    .slide-big-quote {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center !important;
+    }
+    .slide-big-quote blockquote,
+    .slide-big-quote p:first-of-type {
+      font-size: 2.5em !important;
+      font-style: italic;
+      font-weight: 300;
+      line-height: 1.3;
+      max-width: 80%;
+      margin: 0 auto;
+      border: none;
+      padding: 0;
+      quotes: """ """ "'" "'";
+    }
+    .slide-big-quote blockquote::before,
+    .slide-big-quote p:first-of-type::before {
+      content: open-quote;
+      font-size: 3em;
+      line-height: 0;
+      vertical-align: -0.4em;
+      opacity: 0.3;
+      margin-right: 0.1em;
+    }
+    .slide-big-quote blockquote::after,
+    .slide-big-quote p:first-of-type::after {
+      content: close-quote;
+      font-size: 3em;
+      line-height: 0;
+      vertical-align: -0.4em;
+      opacity: 0.3;
+      margin-left: 0.1em;
+    }
+    .slide-big-quote cite,
+    .slide-big-quote p:last-of-type:not(:first-of-type) {
+      display: block;
+      font-size: 0.5em !important;
+      font-style: normal;
+      margin-top: 1.5em;
+      opacity: 0.7;
+    }
+    .slide-big-quote cite::before,
+    .slide-big-quote p:last-of-type:not(:first-of-type)::before {
+      content: "— ";
+    }
+
+    /* Full Image - edge-to-edge image slide */
+    .slide-full-image {
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .slide-full-image img {
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .slide-full-image .image-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2em;
+      position: absolute;
+      top: 0;
+      left: 0;
+      border-radius: 0;
+      border: none;
+      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+    }
+    /* Caption overlay for full-image slides */
+    .slide-full-image p:not(.image-placeholder) {
+      position: absolute;
+      bottom: 2em;
+      left: 0;
+      right: 0;
+      text-align: center;
+      background: rgba(0,0,0,0.6);
+      padding: 0.5em 1em;
+      margin: 0;
+      font-size: 0.8em;
+    }
+
+    /* Title slide styling */
+    .slide-title {
+      text-align: center !important;
+    }
+    .slide-title h1, .slide-title h2 {
+      font-size: 3em !important;
+      margin-bottom: 0.5em;
+    }
+    .slide-title p {
+      font-size: 1.2em;
+      opacity: 0.8;
+    }
+
     .slide-definition h2 {
       color: var(--r-link-color);
     }
@@ -860,6 +1037,7 @@ ${verticalHtml}
   <link rel="stylesheet" href="${CDN_BASE}/dist/theme/${theme}.css">
   <link rel="stylesheet" href="${CDN_BASE}/plugin/highlight/monokai.css">
   ${customCSS}
+  ${themeCSS || ""}
 </head>
 <body>
   <div class="reveal">

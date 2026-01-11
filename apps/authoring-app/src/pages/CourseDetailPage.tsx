@@ -33,6 +33,7 @@ import { ContentList } from "../components/content/ContentList";
 import { UnitForm, type UnitFormData } from "../components/content/UnitForm";
 import { LessonForm, type LessonFormData } from "../components/content/LessonForm";
 import { LessonEditor } from "../components/content/LessonEditor";
+import { ThemeSelector } from "../components/settings/ThemeSelector";
 
 export function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -457,6 +458,7 @@ export function CourseDetailPage() {
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="scenarios">Scenarios</TabsTrigger>
               <TabsTrigger value="paths">Progression Paths</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 
             <TabsContent value="competencies" className="mt-6">
@@ -525,6 +527,10 @@ export function CourseDetailPage() {
                   </p>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="settings" className="mt-6">
+              {courseId && <ThemeSelector courseId={courseId} />}
             </TabsContent>
           </Tabs>
         )}
