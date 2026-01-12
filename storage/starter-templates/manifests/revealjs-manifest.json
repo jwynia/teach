@@ -1,0 +1,394 @@
+{
+  "professional-course-slides-v1.0": {
+    "name": "Professional Course Slides v1.0",
+    "description": "Clean, corporate-style RevealJS template for interactive course presentations",
+    "version": "1.0",
+    "frontmatter_fields": [
+      {
+        "name": "title",
+        "placeholder": "{{course_title}}",
+        "description": "Presentation title",
+        "required": true,
+        "example": "Introduction to Data Privacy"
+      },
+      {
+        "name": "author", 
+        "placeholder": "{{instructor_name}}",
+        "description": "Instructor name",
+        "required": true,
+        "example": "Dr. Sarah Johnson"
+      },
+      {
+        "name": "theme",
+        "description": "RevealJS theme (white, black, league, etc.)",
+        "default": "white",
+        "required": false
+      }
+    ],
+    "slide_types": [
+      {
+        "name": "Title Slide",
+        "description": "Opening slide with course information",
+        "placeholders": [
+          {
+            "name": "{{course_title}}",
+            "description": "Main course title",
+            "required": true,
+            "example": "Introduction to Data Privacy"
+          },
+          {
+            "name": "{{course_subtitle}}",
+            "description": "Course subtitle or description", 
+            "required": false,
+            "example": "Fundamentals for Business Professionals"
+          },
+          {
+            "name": "{{instructor_name}}",
+            "description": "Instructor name",
+            "required": true,
+            "example": "Dr. Sarah Johnson"
+          },
+          {
+            "name": "{{course_date}}",
+            "description": "Course date or session info",
+            "required": false,
+            "example": "January 2025"
+          },
+          {
+            "name": "{{instructor_introduction_notes}}",
+            "description": "Speaker notes for course introduction",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Section Header",
+        "description": "Major section divider slide with custom styling",
+        "css_class": "section-divider",
+        "placeholders": [
+          {
+            "name": "{{section_title}}",
+            "description": "Section or module title",
+            "required": true,
+            "example": "Module 1: Understanding PII"
+          },
+          {
+            "name": "{{section_description}}",
+            "description": "Brief section description",
+            "required": false,
+            "example": "Learn to identify and classify personal information"
+          },
+          {
+            "name": "{{section_instructor_notes}}",
+            "description": "Section overview notes for instructor",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Content Slide",
+        "description": "Standard content slide with title and main content",
+        "placeholders": [
+          {
+            "name": "{{slide_title}}",
+            "description": "Slide title",
+            "required": true,
+            "example": "What is Personal Information?"
+          },
+          {
+            "name": "{{main_content}}",
+            "description": "Main slide content (markdown formatting supported)",
+            "required": true,
+            "example": "- Name and address\\n- Phone number\\n- Email address\\n- Social Security Number"
+          },
+          {
+            "name": "{{slide_instructor_notes}}",
+            "description": "Instructor notes for this slide",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Subsection Slide", 
+        "description": "Nested slide under main content (vertical navigation)",
+        "navigation": "vertical",
+        "placeholders": [
+          {
+            "name": "{{subsection_title}}",
+            "description": "Subsection title",
+            "required": true,
+            "example": "Types of Personal Information"
+          },
+          {
+            "name": "{{subsection_content}}",
+            "description": "Subsection content",
+            "required": true,
+            "example": "We can categorize personal information into several types..."
+          },
+          {
+            "name": "{{subsection_notes}}",
+            "description": "Teaching notes for subsection",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Competency Overview",
+        "description": "Highlighted competency slide with special styling",
+        "css_class": "competency-callout",
+        "placeholders": [
+          {
+            "name": "{{competency_title}}",
+            "description": "Competency name or code",
+            "required": true,
+            "example": "DP-1: Identify Personal Information"
+          },
+          {
+            "name": "{{competency_description}}",
+            "description": "Full competency description (appears in blockquote)",
+            "required": true,
+            "example": "Can accurately identify and classify different types of personal information in various business contexts"
+          },
+          {
+            "name": "{{assessment_criteria}}",
+            "description": "Assessment criteria for this competency",
+            "required": true,
+            "example": "- Distinguishes between direct and indirect identifiers\\n- Classifies information sensitivity levels\\n- Applies privacy principles to real scenarios"
+          },
+          {
+            "name": "{{competency_assessment_notes}}",
+            "description": "Notes on assessing this competency",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Learning Objectives",
+        "description": "Slide listing learning objectives for the module",
+        "placeholders": [
+          {
+            "name": "{{learning_objectives}}",
+            "description": "List of learning objectives (markdown list format)",
+            "required": true,
+            "example": "- Identify different types of personal information\\n- Understand privacy regulations\\n- Apply best practices for data protection"
+          },
+          {
+            "name": "{{learning_objectives_notes}}",
+            "description": "Teaching notes about the learning objectives",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Two Column Layout",
+        "description": "Side-by-side content comparison slide",
+        "css_class": "two-column",
+        "placeholders": [
+          {
+            "name": "{{left_column_title}}",
+            "description": "Left column header",
+            "required": true,
+            "example": "Direct Identifiers"
+          },
+          {
+            "name": "{{left_column_content}}",
+            "description": "Left column content",
+            "required": true,
+            "example": "- Full name\\n- Social Security Number\\n- Email address"
+          },
+          {
+            "name": "{{right_column_title}}",
+            "description": "Right column header", 
+            "required": true,
+            "example": "Indirect Identifiers"
+          },
+          {
+            "name": "{{right_column_content}}",
+            "description": "Right column content",
+            "required": true,
+            "example": "- Date of birth\\n- ZIP code\\n- Job title"
+          },
+          {
+            "name": "{{two_column_notes}}",
+            "description": "Teaching notes for comparison",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Activity Instructions",
+        "description": "Activity slide with timing and materials",
+        "placeholders": [
+          {
+            "name": "{{activity_title}}",
+            "description": "Activity name",
+            "required": true,
+            "example": "PII Classification Exercise"
+          },
+          {
+            "name": "{{activity_instructions}}",
+            "description": "Step-by-step activity instructions",
+            "required": true,
+            "example": "1. Review the sample documents\\n2. Identify all personal information\\n3. Classify each item as direct or indirect\\n4. Discuss findings with your partner"
+          },
+          {
+            "name": "{{time_estimate}}",
+            "description": "Time estimate in minutes (number only)",
+            "required": true,
+            "example": "15"
+          },
+          {
+            "name": "{{materials_needed}}",
+            "description": "Required materials or resources",
+            "required": false,
+            "example": "- Sample documents\\n- Classification worksheet\\n- Partner for discussion"
+          },
+          {
+            "name": "{{activity_facilitation_notes}}",
+            "description": "Facilitation tips and notes for instructor",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Discussion Slide",
+        "description": "Discussion prompt with facilitation guidance",
+        "placeholders": [
+          {
+            "name": "{{discussion_prompt}}",
+            "description": "Main discussion question or scenario",
+            "required": true,
+            "example": "How would you handle a suspected data breach in your organization?"
+          },
+          {
+            "name": "{{discussion_questions}}",
+            "description": "Follow-up questions to guide discussion",
+            "required": false,
+            "example": "- What immediate steps should you take?\\n- Who needs to be notified?\\n- What documentation is required?"
+          },
+          {
+            "name": "{{discussion_teaching_notes}}",
+            "description": "Visible teaching notes and guidance",
+            "required": false,
+            "css_class": "teaching-note"
+          },
+          {
+            "name": "{{discussion_facilitation_tips}}",
+            "description": "Private facilitation tips for instructor",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Knowledge Check",
+        "description": "Interactive quiz or assessment slide",
+        "placeholders": [
+          {
+            "name": "{{knowledge_check_question}}",
+            "description": "Question for knowledge check",
+            "required": true,
+            "example": "Which of the following is considered a direct identifier?"
+          },
+          {
+            "name": "{{knowledge_check_options}}",
+            "description": "Answer options (if applicable)",
+            "required": false,
+            "example": "A) Date of birth\\nB) Full name\\nC) ZIP code\\nD) Job title"
+          },
+          {
+            "name": "{{knowledge_check_answer_and_rationale}}",
+            "description": "Correct answer and explanation for instructor",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Summary Slide",
+        "description": "Module wrap-up with key takeaways",
+        "placeholders": [
+          {
+            "name": "{{key_takeaways}}",
+            "description": "Key points to remember from this module",
+            "required": true,
+            "example": "- PII includes both direct and indirect identifiers\\n- Context matters for classification\\n- Always err on the side of caution"
+          },
+          {
+            "name": "{{next_steps}}",
+            "description": "What comes next in the course",
+            "required": false,
+            "example": "Next: Module 2 - Privacy Regulations and Compliance"
+          },
+          {
+            "name": "{{wrap_up_notes}}",
+            "description": "Wrap-up notes for instructor",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Resources Slide",
+        "description": "Additional resources and references",
+        "placeholders": [
+          {
+            "name": "{{additional_resources}}",
+            "description": "List of additional resources",
+            "required": false,
+            "example": "- Company privacy policy\\n- GDPR compliance guide\\n- Data classification worksheet"
+          },
+          {
+            "name": "{{further_reading}}",
+            "description": "Recommended reading materials",
+            "required": false,
+            "example": "- \"Data Privacy for Dummies\"\\n- FTC Privacy Guidelines\\n- Industry best practices report"
+          },
+          {
+            "name": "{{contact_information}}",
+            "description": "Contact info for follow-up questions",
+            "required": false,
+            "example": "Questions? Contact the training team at training@company.com"
+          },
+          {
+            "name": "{{resources_notes}}",
+            "description": "Notes about the resources provided",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      }
+    ],
+    "features": {
+      "speaker_notes": true,
+      "presenter_view": "Press 'S' to open speaker view",
+      "navigation": {
+        "horizontal": "Main topics",
+        "vertical": "Subtopics (use down arrow)",
+        "keyboard_shortcuts": "Arrow keys, space, S for speaker view"
+      },
+      "print_to_pdf": "Add ?print-pdf to URL, then print",
+      "custom_css": "Professional corporate styling included"
+    },
+    "color_scheme": {
+      "primary_blue": "#1B365D",
+      "accent_teal": "#2E7D7A",
+      "light_gray": "#F5F5F5", 
+      "text_dark": "#333333",
+      "text_medium": "#666666",
+      "background": "#FFFFFF"
+    },
+    "supported_document_types": [
+      "lecture-slides",
+      "instructor-guide"
+    ]
+  }
+}

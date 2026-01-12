@@ -1,0 +1,197 @@
+{
+  "professional-course-template-v1.0": {
+    "name": "Professional Course Template v1.0",
+    "description": "Clean, corporate-style template for course presentations",
+    "version": "1.0",
+    "layouts": [
+      {
+        "name": "Title Slide",
+        "slideNumber": 1,
+        "description": "Course introduction slide with title, subtitle, instructor and date",
+        "placeholders": [
+          {
+            "name": "{{course_title}}",
+            "description": "Main course title",
+            "required": true,
+            "example": "Introduction to Data Privacy"
+          },
+          {
+            "name": "{{course_subtitle}}",
+            "description": "Course subtitle or description",
+            "required": false,
+            "example": "Fundamentals for Business Professionals"
+          },
+          {
+            "name": "{{instructor_name}}",
+            "description": "Instructor name",
+            "required": true,
+            "example": "Dr. Sarah Johnson"
+          },
+          {
+            "name": "{{course_date}}",
+            "description": "Course date or session info",
+            "required": false,
+            "example": "January 2025"
+          }
+        ]
+      },
+      {
+        "name": "Section Header",
+        "slideNumber": 2,
+        "description": "Major section divider slide",
+        "placeholders": [
+          {
+            "name": "{{section_title}}",
+            "description": "Section or module title",
+            "required": true,
+            "example": "Module 1: Understanding PII"
+          },
+          {
+            "name": "{{section_description}}",
+            "description": "Brief section description",
+            "required": false,
+            "example": "Learn to identify and classify personal information"
+          }
+        ]
+      },
+      {
+        "name": "Content Slide",
+        "slideNumber": 3,
+        "description": "Standard content slide with title and main content area",
+        "placeholders": [
+          {
+            "name": "{{slide_title}}",
+            "description": "Slide title",
+            "required": true,
+            "example": "What is Personal Information?"
+          },
+          {
+            "name": "{{main_content}}",
+            "description": "Main slide content (bullet points, paragraphs)",
+            "required": true,
+            "example": "• Name and address\\n• Phone number\\n• Email address\\n• Social Security Number"
+          }
+        ]
+      },
+      {
+        "name": "Two Column",
+        "slideNumber": 4,
+        "description": "Two-column layout for comparisons or side-by-side content",
+        "placeholders": [
+          {
+            "name": "{{slide_title}}",
+            "description": "Slide title",
+            "required": true,
+            "example": "Direct vs Indirect Identifiers"
+          },
+          {
+            "name": "{{left_column}}",
+            "description": "Left column content",
+            "required": true,
+            "example": "Direct Identifiers:\\n• Name\\n• SSN\\n• Email address"
+          },
+          {
+            "name": "{{right_column}}",
+            "description": "Right column content",
+            "required": true,
+            "example": "Indirect Identifiers:\\n• Date of birth\\n• ZIP code\\n• Job title"
+          }
+        ]
+      },
+      {
+        "name": "Competency Overview",
+        "slideNumber": 5,
+        "description": "Slide for highlighting specific competencies and learning objectives",
+        "placeholders": [
+          {
+            "name": "{{competency_title}}",
+            "description": "Competency name or code",
+            "required": true,
+            "example": "DP-1: Identify Personal Information"
+          },
+          {
+            "name": "{{competency_description}}",
+            "description": "Full competency description (starts with 'Can')",
+            "required": true,
+            "example": "Can accurately identify and classify different types of personal information in various business contexts"
+          },
+          {
+            "name": "{{learning_objectives}}",
+            "description": "Specific learning objectives for this competency",
+            "required": true,
+            "example": "• Distinguish between direct and indirect identifiers\\n• Classify information sensitivity levels\\n• Apply privacy principles to real scenarios"
+          }
+        ]
+      },
+      {
+        "name": "Activity Instructions",
+        "slideNumber": 6,
+        "description": "Activity slide with instructions, timing, and materials",
+        "placeholders": [
+          {
+            "name": "{{activity_title}}",
+            "description": "Activity name",
+            "required": true,
+            "example": "PII Classification Exercise"
+          },
+          {
+            "name": "{{activity_instructions}}",
+            "description": "Step-by-step activity instructions",
+            "required": true,
+            "example": "1. Review the sample documents\\n2. Identify all personal information\\n3. Classify each item as direct or indirect\\n4. Discuss findings with your partner"
+          },
+          {
+            "name": "{{time_estimate}}",
+            "description": "Time estimate in minutes (number only)",
+            "required": true,
+            "example": "15"
+          },
+          {
+            "name": "{{materials_needed}}",
+            "description": "Required materials or resources",
+            "required": false,
+            "example": "• Sample documents\\n• Classification worksheet\\n• Partner"
+          }
+        ]
+      },
+      {
+        "name": "Q&A / Discussion",
+        "slideNumber": 7,
+        "description": "Discussion slide with prompt and facilitation notes",
+        "placeholders": [
+          {
+            "name": "{{discussion_prompt}}",
+            "description": "Main discussion question or prompt",
+            "required": true,
+            "example": "How would you handle a data breach?"
+          },
+          {
+            "name": "{{discussion_points}}",
+            "description": "Key discussion points or follow-up questions",
+            "required": false,
+            "example": "• What steps should be taken immediately?\\n• Who should be notified?\\n• What documentation is needed?"
+          },
+          {
+            "name": "{{teaching_notes}}",
+            "description": "Private notes for instructor facilitation",
+            "required": false,
+            "example": "Encourage sharing of real experiences. Watch for compliance questions - refer to legal team if needed."
+          }
+        ]
+      }
+    ],
+    "color_scheme": {
+      "primary_blue": "#1B365D",
+      "accent_teal": "#2E7D7A",
+      "light_gray": "#F5F5F5",
+      "text_dark": "#333333",
+      "text_medium": "#666666",
+      "background": "#FFFFFF"
+    },
+    "supported_document_types": [
+      "lecture-slides",
+      "instructor-guide",
+      "student-handout"
+    ]
+  }
+}

@@ -1,0 +1,353 @@
+{
+  "title": "Professional Course Template v1.0",
+  "author": "Teach Platform",
+  "slides": [
+    {
+      "background": { "color": "FFFFFF" },
+      "elements": [
+        {
+          "type": "text",
+          "x": 0.5, "y": 0.3, "w": 9, "h": 0.8,
+          "options": {
+            "text": "{{course_title}}",
+            "fontSize": 44,
+            "bold": true,
+            "color": "1B365D",
+            "align": "center"
+          }
+        },
+        {
+          "type": "text", 
+          "x": 0.5, "y": 1.3, "w": 9, "h": 0.6,
+          "options": {
+            "text": "{{course_subtitle}}",
+            "fontSize": 24,
+            "color": "2E7D7A",
+            "align": "center"
+          }
+        },
+        {
+          "type": "text",
+          "x": 0.5, "y": 5.0, "w": 4, "h": 0.5,
+          "options": {
+            "text": "Instructor: {{instructor_name}}",
+            "fontSize": 16,
+            "color": "333333",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "x": 5.5, "y": 5.0, "w": 4, "h": 0.5,
+          "options": {
+            "text": "{{course_date}}",
+            "fontSize": 16,
+            "color": "333333",
+            "align": "right"
+          }
+        }
+      ]
+    },
+    {
+      "background": { "color": "FFFFFF" },
+      "elements": [
+        {
+          "type": "text",
+          "x": 0.5, "y": 0.5, "w": 9, "h": 0.8,
+          "options": {
+            "text": "{{section_title}}",
+            "fontSize": 36,
+            "bold": true,
+            "color": "1B365D",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "x": 0.5, "y": 1.5, "w": 9, "h": 0.6,
+          "options": {
+            "text": "{{section_description}}",
+            "fontSize": 20,
+            "color": "666666",
+            "align": "left"
+          }
+        },
+        {
+          "type": "shape",
+          "x": 0.5, "y": 2.3, "w": 9, "h": 0.05,
+          "options": {
+            "type": "rect",
+            "fill": "2E7D7A"
+          }
+        }
+      ]
+    },
+    {
+      "background": { "color": "FFFFFF" },
+      "elements": [
+        {
+          "type": "text",
+          "x": 0.5, "y": 0.5, "w": 9, "h": 0.7,
+          "options": {
+            "text": "{{slide_title}}",
+            "fontSize": 32,
+            "bold": true,
+            "color": "1B365D",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "x": 0.5, "y": 1.5, "w": 9, "h": 3.5,
+          "options": {
+            "text": "{{main_content}}",
+            "fontSize": 20,
+            "color": "333333",
+            "align": "left"
+          }
+        }
+      ]
+    },
+    {
+      "background": { "color": "FFFFFF" },
+      "elements": [
+        {
+          "type": "text",
+          "x": 0.5, "y": 0.5, "w": 9, "h": 0.7,
+          "options": {
+            "text": "{{slide_title}}",
+            "fontSize": 32,
+            "bold": true,
+            "color": "1B365D",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "x": 0.5, "y": 1.5, "w": 4.2, "h": 3.5,
+          "options": {
+            "text": "{{left_column}}",
+            "fontSize": 18,
+            "color": "333333",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "x": 5.3, "y": 1.5, "w": 4.2, "h": 3.5,
+          "options": {
+            "text": "{{right_column}}",
+            "fontSize": 18,
+            "color": "333333",
+            "align": "left"
+          }
+        }
+      ]
+    },
+    {
+      "background": { "color": "FFFFFF" },
+      "elements": [
+        {
+          "type": "text",
+          "x": 0.5, "y": 0.5, "w": 9, "h": 0.7,
+          "options": {
+            "text": "{{competency_title}}",
+            "fontSize": 32,
+            "bold": true,
+            "color": "1B365D",
+            "align": "left"
+          }
+        },
+        {
+          "type": "shape",
+          "x": 0.5, "y": 1.4, "w": 9, "h": 1.0,
+          "options": {
+            "type": "rect",
+            "fill": "F5F5F5",
+            "line": { "color": "2E7D7A", "width": 2 }
+          }
+        },
+        {
+          "type": "text",
+          "x": 0.7, "y": 1.6, "w": 8.6, "h": 0.6,
+          "options": {
+            "text": "{{competency_description}}",
+            "fontSize": 16,
+            "color": "333333",
+            "align": "left",
+            "italic": true
+          }
+        },
+        {
+          "type": "text",
+          "x": 0.5, "y": 2.7, "w": 9, "h": 0.5,
+          "options": {
+            "text": "Learning Objectives:",
+            "fontSize": 20,
+            "bold": true,
+            "color": "1B365D",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "x": 0.5, "y": 3.3, "w": 9, "h": 1.7,
+          "options": {
+            "text": "{{learning_objectives}}",
+            "fontSize": 16,
+            "color": "333333",
+            "align": "left"
+          }
+        }
+      ]
+    },
+    {
+      "background": { "color": "FFFFFF" },
+      "elements": [
+        {
+          "type": "text",
+          "x": 0.5, "y": 0.5, "w": 9, "h": 0.7,
+          "options": {
+            "text": "Activity: {{activity_title}}",
+            "fontSize": 32,
+            "bold": true,
+            "color": "1B365D",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "x": 0.5, "y": 1.5, "w": 6.5, "h": 0.5,
+          "options": {
+            "text": "Instructions:",
+            "fontSize": 20,
+            "bold": true,
+            "color": "333333",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "x": 0.5, "y": 2.1, "w": 6.5, "h": 2.4,
+          "options": {
+            "text": "{{activity_instructions}}",
+            "fontSize": 16,
+            "color": "333333",
+            "align": "left"
+          }
+        },
+        {
+          "type": "shape",
+          "x": 7.2, "y": 1.5, "w": 2.3, "h": 1.2,
+          "options": {
+            "type": "rect",
+            "fill": "2E7D7A",
+            "line": { "color": "2E7D7A", "width": 1 }
+          }
+        },
+        {
+          "type": "text",
+          "x": 7.4, "y": 1.7, "w": 1.9, "h": 0.4,
+          "options": {
+            "text": "Time Estimate",
+            "fontSize": 12,
+            "bold": true,
+            "color": "FFFFFF",
+            "align": "center"
+          }
+        },
+        {
+          "type": "text",
+          "x": 7.4, "y": 2.1, "w": 1.9, "h": 0.4,
+          "options": {
+            "text": "{{time_estimate}} min",
+            "fontSize": 16,
+            "bold": true,
+            "color": "FFFFFF",
+            "align": "center"
+          }
+        },
+        {
+          "type": "text",
+          "x": 7.2, "y": 2.9, "w": 2.3, "h": 0.4,
+          "options": {
+            "text": "Materials Needed:",
+            "fontSize": 12,
+            "bold": true,
+            "color": "1B365D",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "x": 7.2, "y": 3.4, "w": 2.3, "h": 1.6,
+          "options": {
+            "text": "{{materials_needed}}",
+            "fontSize": 11,
+            "color": "333333",
+            "align": "left"
+          }
+        }
+      ]
+    },
+    {
+      "background": { "color": "FFFFFF" },
+      "elements": [
+        {
+          "type": "text",
+          "x": 1, "y": 1.5, "w": 8, "h": 1.5,
+          "options": {
+            "text": "{{discussion_prompt}}",
+            "fontSize": 36,
+            "bold": true,
+            "color": "1B365D",
+            "align": "center"
+          }
+        },
+        {
+          "type": "text",
+          "x": 0.5, "y": 3.5, "w": 4.2, "h": 0.5,
+          "options": {
+            "text": "Discussion Points:",
+            "fontSize": 18,
+            "bold": true,
+            "color": "333333",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "x": 0.5, "y": 4.1, "w": 4.2, "h": 1.4,
+          "options": {
+            "text": "{{discussion_points}}",
+            "fontSize": 14,
+            "color": "333333",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "x": 5.3, "y": 3.5, "w": 4.2, "h": 0.5,
+          "options": {
+            "text": "Teaching Notes:",
+            "fontSize": 18,
+            "bold": true,
+            "color": "666666",
+            "align": "left"
+          }
+        },
+        {
+          "type": "text",
+          "x": 5.3, "y": 4.1, "w": 4.2, "h": 1.4,
+          "options": {
+            "text": "{{teaching_notes}}",
+            "fontSize": 14,
+            "color": "666666",
+            "align": "left",
+            "italic": true
+          }
+        }
+      ]
+    }
+  ]
+}

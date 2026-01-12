@@ -17,6 +17,7 @@ import { scenarios } from "./routes/scenarios.js";
 import { paths, skipLogic } from "./routes/paths.js";
 import { lessonDocuments, documents, courseDocuments } from "./routes/documents.js";
 import { themes, courseThemes } from "./routes/themes.js";
+import { templates } from "./routes/templates.js";
 
 const app = new Hono();
 
@@ -85,6 +86,8 @@ app.route("/api/courses/:courseId/documents", courseDocuments);
 // Presentation theme routes
 app.route("/api/presentation-themes", themes);
 app.route("/api/courses/:courseId/theme", courseThemes);
+// Template management routes
+app.route("/api/templates", templates);
 
 // Initialize Mastra routes
 const server = new MastraServer({ app, mastra });
@@ -125,6 +128,13 @@ console.log(`  Get theme:    GET /api/presentation-themes/:id`);
 console.log(`  Create:       POST /api/presentation-themes`);
 console.log(`  Generate:     POST /api/presentation-themes/generate`);
 console.log(`  Course theme: GET/PUT/DEL /api/courses/:id/theme`);
+console.log(`Template management:`);
+console.log(`  Starters:     GET /api/templates/starters`);
+console.log(`  Download:     GET /api/templates/starters/:type/:id`);
+console.log(`  My Templates: GET /api/templates/mine`);
+console.log(`  Public:       GET /api/templates/public`);
+console.log(`  Upload:       POST /api/templates/upload`);
+console.log(`  Validate:     POST /api/templates/:id/validate`);
 console.log(`Other:`);
 console.log(`  Export:       POST /api/courses/:id/export`);
 console.log(`  RevealJS:     GET /api/courses/:id/export/revealjs`);
