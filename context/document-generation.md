@@ -278,9 +278,12 @@ Slide generation follows three authoritative sources:
 | **process** | Sequential steps | Numbered visual steps | Mayer segmenting |
 | **comparison** | Contrasting ideas | Side-by-side table | Mayer spatial contiguity |
 | **quote** | Memorable insight | Large quote + attribution | Reynolds signal-to-noise |
+| **big-quote** | Dramatic emphasis | Full-screen centered quote | Reynolds signal-to-noise |
 | **question** | Engagement/reflection | Single provocative question | Mayer coherence |
 | **example** | Concrete illustration | Scenario description | Mayer multimedia |
 | **summary** | Recap | 3-5 key takeaways as sentences | Mayer segmenting |
+| **full-image** | Visual impact | Edge-to-edge image with optional caption | Mayer multimedia |
+| **title** | Section opener | Large centered title + subtitle | Mayer pre-training |
 
 #### Markdown Annotations
 
@@ -300,11 +303,39 @@ Note: Speaker notes for the presenter
 
 | Annotation | Purpose | Values |
 |------------|---------|--------|
-| `<!-- type: X -->` | Slide type | assertion, definition, process, comparison, quote, question, example, summary |
+| `<!-- type: X -->` | Slide type | assertion, definition, process, comparison, quote, big-quote, question, example, summary, full-image, title |
 | `<!-- layout: X -->` | Layout hint | single, two-column, image-left, image-right, full-image |
 | `[IMAGE: desc]` | Visual placeholder | Description of needed image |
 | `[DIAGRAM: desc]` | Diagram placeholder | Description of needed diagram |
 | `Note:` | Speaker notes | RevealJS native format |
+
+**Type Aliases:** `giant-quote` → `big-quote`, `image` → `full-image`
+
+#### Additional Slide Type Examples
+
+**Big Quote** - Dramatic full-screen quote for maximum impact:
+```markdown
+<!-- type: big-quote -->
+> The only way to do great work is to love what you do.
+
+Steve Jobs
+```
+
+**Full Image** - Edge-to-edge visual with optional caption:
+```markdown
+<!-- type: full-image -->
+[IMAGE: Mountain landscape at golden hour]
+
+Where clarity meets inspiration
+```
+
+**Title** - Section divider slide:
+```markdown
+<!-- type: title -->
+## Part Two
+
+The Implementation Phase
+```
 
 #### Anti-Patterns to Avoid
 

@@ -39,6 +39,23 @@ Teach has **started Phase 3** of the feature backlog. PDF generation service is 
 - [ ] Implement XLSX service
 - [ ] Create grading rubric spec builder (XLSX)
 
+### Phase 3.5: Image Generation for Slides (PLANNED)
+- [ ] Add @fal-ai/client dependency
+- [ ] Create database migration for generated_images table
+- [ ] Create fal.ai service (`services/images/fal.service.ts`)
+- [ ] Create image generation API endpoints (`routes/images.ts`)
+- [ ] Update RevealJS export to embed selected images
+- [ ] Create ImageSelector UI component
+- [ ] Update LessonEditor with "Generate Images" button
+
+**Design Decision:** Use fal.ai FLUX models for image generation (DEC-012)
+- Lower cost (~$0.008/megapixel vs $0.04 for Google Imagen)
+- No visible watermark
+- 16:9 aspect ratio support for slides
+- Estimated cost: ~$3.20 for 20-lesson course
+
+**Plan file:** `.claude/plans/zesty-inventing-glacier.md`
+
 ### Completed Previously
 - [x] Define core architecture and component boundaries
 - [x] Set up monorepo with pnpm + Turborepo
@@ -228,4 +245,4 @@ pnpm dev
 
 ---
 
-*Last updated: 2026-01-10*
+*Last updated: 2026-01-11*

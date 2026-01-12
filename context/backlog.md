@@ -148,6 +148,34 @@ Steps: Validate → Generate specs → Call Deno generators → Store files
 | Instructor Guide | DOCX | Overview, timing, teaching notes, rubrics |
 | Assessment Worksheet | PDF | Scenarios with response areas |
 
+### 3.6 Image Generation for Slides
+**Directory**: `apps/authoring-api/src/services/images/`
+
+AI-powered image generation from `[IMAGE: description]` annotations in slide content.
+
+**API**: fal.ai with FLUX models (see DEC-012)
+- Cost: ~$0.008/megapixel (~$0.032 for 4 variations)
+- Features: 16:9 aspect ratio, no watermark, batch generation
+
+**Components**:
+- `fal.service.ts` - fal.ai FLUX integration with caching
+- `types.ts` - Zod schemas for generated images
+- `routes/images.ts` - API endpoints for generation/selection
+- Database: `generated_images` table
+
+**UI**:
+- ImageSelector component - 4-image grid with selection
+- LessonEditor integration - "Generate Images" button
+
+**Flow**:
+1. Parse `[IMAGE: description]` from slide content
+2. Generate 4 variations via fal.ai FLUX
+3. Store images locally in `storage/generated/{courseId}/images/`
+4. Author selects preferred variation
+5. RevealJS export embeds selected image
+
+**Plan file**: `.claude/plans/zesty-inventing-glacier.md`
+
 ---
 
 ## Epic 4: Learning Verification System

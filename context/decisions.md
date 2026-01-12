@@ -292,3 +292,87 @@ When adding a new decision, use this format:
 - Alley, M. (2013). *The Craft of Scientific Presentations*. Springer.
 - Reynolds, G. (2012). *Presentation Zen*. New Riders.
 - assertion-evidence.org - Penn State research
+
+---
+
+### DEC-010: Native Node.js Document Generation
+
+**Date**: 2026-01-08
+**Status**: Accepted
+
+**Context**: Original plan called for Deno subprocess calls to existing generator skills. This added complexity with process management, error handling, and permission flags.
+
+**Decision**: Port document generation to native Node.js using the same npm packages (pdf-lib 1.17.1, docx 9.0.2, pptxgenjs 3.12.0, xlsx 0.18.5).
+
+**Rationale**: Simpler deployment, better error handling, direct integration with Mastra tools, no subprocess management, type safety across the stack.
+
+**Consequences**:
+- Document generation services run in-process
+- Same JSON spec format as original skills
+- Deno skills remain as reference implementations
+
+---
+
+### DEC-011: RevealJS for Live Preview
+
+**Date**: 2026-01-08
+**Status**: Accepted
+
+**Context**: Need browser-viewable preview of presentation slides without server-side PPTX rendering.
+
+**Decision**: Use RevealJS HTML for in-browser preview instead of rendering PPTX to images.
+
+**Rationale**:
+- No server-side rendering dependencies
+- Works directly in browser
+- Learners can use RevealJS output directly for presentations
+- Supports `?print-pdf` for PDF export
+- Theming via CSS variables
+
+**Consequences**:
+- Two output formats: PPTX for download, RevealJS for preview/use
+- Theme system needed for consistent styling
+- Annotation parsing shared between both outputs
+
+---
+
+### DEC-012: fal.ai FLUX for Image Generation
+
+**Date**: 2026-01-11
+**Status**: Accepted
+
+**Context**: Slide annotations include `[IMAGE: description]` placeholders that need AI-generated images. Evaluated Google Imagen 4, fal.ai FLUX, and Replicate.
+
+**Decision**: Use fal.ai with FLUX models for generating images from slide annotation descriptions.
+
+**Rationale**:
+- **Cost**: ~$0.008/megapixel vs Google Imagen $0.04/image (5x cheaper)
+- **No watermark**: Google Imagen adds visible SynthID watermark
+- **Aspect ratio**: Native 16:9 support via `image_size: "landscape_16_9"`
+- **Batch support**: `num_images: 4` generates variations in single request
+- **Developer experience**: `@fal-ai/client` npm package with queue-based async and polling
+
+**Implementation**:
+- Generate 4 variations per annotation (~$0.032 total)
+- Store in `storage/generated/{courseId}/images/`
+- Author selects preferred variation via ImageSelector UI
+- Cache by prompt hash to avoid regeneration
+- RevealJS export embeds selected images
+
+**Cost Estimate**:
+- 4 variations per annotation: ~$0.032
+- 5 annotations per lesson: ~$0.16
+- 20-lesson course: ~$3.20 total
+
+**Consequences**:
+- External API dependency (requires FAL_KEY)
+- Async generation with polling needed
+- Images stored locally (not in database)
+- Selection UI required in authoring app
+
+**Alternatives Considered**:
+- **Google Imagen 4**: More expensive, visible watermark, requires Google Cloud
+- **Replicate**: Similar to fal.ai but less optimized pricing for FLUX
+- **Local Stable Diffusion**: Requires GPU, complex setup, defeats cloud-first approach
+
+**Plan File**: `.claude/plans/zesty-inventing-glacier.md`
