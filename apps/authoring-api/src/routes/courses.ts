@@ -689,6 +689,7 @@ interface SlideAnnotations {
   layout: string;
   imageHint: string | null;
   content: string;
+  notes: string | null;
 }
 
 // Parse slide annotations from markdown content
@@ -698,11 +699,18 @@ function parseSlideAnnotations(slideMarkdown: string): SlideAnnotations {
   const imageMatch = slideMarkdown.match(/\[IMAGE:\s*([^\]]+)\]/);
   const diagramMatch = slideMarkdown.match(/\[DIAGRAM:\s*([^\]]+)\]/);
 
+  // Extract speaker notes (Note: followed by content until end of slide)
+  // Matches "Note:" or "Notes:" (case-insensitive) followed by everything until end
+  const notesMatch = slideMarkdown.match(/\n\s*Notes?:\s*([\s\S]*?)$/i);
+  const notes = notesMatch ? notesMatch[1].trim() : null;
+
   // Strip annotations from display content but keep structure
   let content = slideMarkdown
     .replace(/<!--\s*type:\s*\w+\s*-->/g, '')
     .replace(/<!--\s*layout:\s*[\w-]+\s*-->/g, '')
     .replace(/<!--\s*emphasis:\s*\w+\s*-->/g, '')
+    // Remove the Note: section from display content
+    .replace(/\n\s*Notes?:\s*[\s\S]*?$/i, '')
     .trim();
 
   // Transform [IMAGE: ...] into a visual placeholder
@@ -727,7 +735,8 @@ function parseSlideAnnotations(slideMarkdown: string): SlideAnnotations {
     type: typeMatch?.[1] || 'default',
     layout: layoutMatch?.[1] || 'single',
     imageHint: imageMatch?.[1] || diagramMatch?.[1] || null,
-    content
+    content,
+    notes
   };
 }
 
@@ -826,10 +835,12 @@ function generateRevealJSFromMarkdown(
       const annotations = parseSlideAnnotations(part);
       const classes = getSlideClasses(annotations.type, annotations.layout);
       const classAttr = classes ? ` class="${classes}"` : '';
+      // Add speaker notes back in RevealJS markdown format
+      const notesSection = annotations.notes ? `\n\nNote:\n${annotations.notes}` : '';
 
       slidesHtml.push(`      <section data-markdown${classAttr}>
         <textarea data-template>
-${annotations.content}
+${annotations.content}${notesSection}
         </textarea>
       </section>`);
     } else {
@@ -838,10 +849,12 @@ ${annotations.content}
         const annotations = parseSlideAnnotations(vp);
         const classes = getSlideClasses(annotations.type, annotations.layout);
         const classAttr = classes ? ` class="${classes}"` : '';
+        // Add speaker notes back in RevealJS markdown format
+        const notesSection = annotations.notes ? `\n\nNote:\n${annotations.notes}` : '';
 
         return `        <section data-markdown${classAttr}>
           <textarea data-template>
-${annotations.content}
+${annotations.content}${notesSection}
           </textarea>
         </section>`;
       }).join("\n");

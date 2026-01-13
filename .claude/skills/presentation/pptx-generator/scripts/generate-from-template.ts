@@ -44,6 +44,13 @@ export interface SlideSelection {
   insertAt?: number;
 }
 
+export interface SlideNotes {
+  /** Slide number (1-indexed) */
+  slideNumber: number;
+  /** Speaker notes text (verbatim transcript) */
+  notes: string;
+}
+
 export interface TemplateSpec {
   /** Path to the master template file (can be overridden by CLI) */
   masterTemplate?: string;
@@ -55,6 +62,8 @@ export interface TemplateSpec {
   includeSlides?: number[];
   /** Which slides to exclude from master (1-indexed) */
   excludeSlides?: number[];
+  /** Speaker notes for slides (verbatim transcript text) */
+  slideNotes?: SlideNotes[];
 }
 
 interface ParsedArgs {
@@ -113,6 +122,17 @@ Specification Format (Slide Library):
       { "tag": "{{TITLE}}", "value": "Custom Presentation" }
     ]
   }
+
+Specification Format (Speaker Notes):
+  {
+    "slideNotes": [
+      { "slideNumber": 1, "notes": "Welcome everyone to today's presentation..." },
+      { "slideNumber": 2, "notes": "This slide covers our key objectives..." }
+    ]
+  }
+
+  Notes appear in PowerPoint's Notes pane and Presenter View.
+  Can be combined with textReplacements and slideSelections.
 
 Examples:
   # Replace text in template
@@ -344,6 +364,287 @@ async function updateContentTypes(
   zip.file(ctPath, serializer.serializeToString(doc));
 }
 
+// === Speaker Notes Support ===
+
+/**
+ * Generate the notes master XML (template for all notes pages)
+ */
+function generateNotesMasterXml(): string {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:notesMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld>
+    <p:spTree>
+      <p:nvGrpSpPr>
+        <p:cNvPr id="1" name=""/>
+        <p:cNvGrpSpPr/>
+        <p:nvPr/>
+      </p:nvGrpSpPr>
+      <p:grpSpPr>
+        <a:xfrm>
+          <a:off x="0" y="0"/>
+          <a:ext cx="0" cy="0"/>
+          <a:chOff x="0" y="0"/>
+          <a:chExt cx="0" cy="0"/>
+        </a:xfrm>
+      </p:grpSpPr>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="2" name="Slide Image Placeholder"/>
+          <p:cNvSpPr><a:spLocks noGrp="1" noRot="1" noChangeAspect="1"/></p:cNvSpPr>
+          <p:nvPr><p:ph type="sldImg"/></p:nvPr>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="381000" y="685800"/>
+            <a:ext cx="6096000" cy="3429000"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+          <a:noFill/>
+          <a:ln w="12700"><a:solidFill><a:schemeClr val="tx1"/></a:solidFill></a:ln>
+        </p:spPr>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="3" name="Notes Placeholder"/>
+          <p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>
+          <p:nvPr><p:ph type="body" idx="1"/></p:nvPr>
+        </p:nvSpPr>
+        <p:spPr>
+          <a:xfrm>
+            <a:off x="381000" y="4343400"/>
+            <a:ext cx="6096000" cy="4114800"/>
+          </a:xfrm>
+          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+        </p:spPr>
+        <p:txBody>
+          <a:bodyPr vert="horz" lIns="91440" tIns="45720" rIns="91440" bIns="45720" rtlCol="0"/>
+          <a:lstStyle/>
+          <a:p><a:pPr lvl="0"/><a:r><a:rPr lang="en-US"/><a:t></a:t></a:r></a:p>
+        </p:txBody>
+      </p:sp>
+    </p:spTree>
+  </p:cSld>
+  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
+</p:notesMaster>`;
+}
+
+/**
+ * Generate the notes master relationships file
+ */
+function generateNotesMasterRelsXml(): string {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>
+</Relationships>`;
+}
+
+/**
+ * Escape text for XML content
+ */
+function escapeXmlText(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/**
+ * Generate a notes slide XML with the given speaker notes text
+ */
+function generateNotesSlideXml(notesText: string): string {
+  // Split notes into paragraphs and create XML for each
+  const paragraphs = notesText.split(/\n\n+/).map(p => p.trim()).filter(p => p);
+  const paragraphsXml = paragraphs.length > 0
+    ? paragraphs.map(p =>
+        `<a:p><a:r><a:rPr lang="en-US" dirty="0"/><a:t>${escapeXmlText(p.replace(/\n/g, " "))}</a:t></a:r></a:p>`
+      ).join("")
+    : `<a:p><a:r><a:rPr lang="en-US" dirty="0"/><a:t>${escapeXmlText(notesText)}</a:t></a:r></a:p>`;
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:notes xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld>
+    <p:spTree>
+      <p:nvGrpSpPr>
+        <p:cNvPr id="1" name=""/>
+        <p:cNvGrpSpPr/>
+        <p:nvPr/>
+      </p:nvGrpSpPr>
+      <p:grpSpPr>
+        <a:xfrm>
+          <a:off x="0" y="0"/>
+          <a:ext cx="0" cy="0"/>
+          <a:chOff x="0" y="0"/>
+          <a:chExt cx="0" cy="0"/>
+        </a:xfrm>
+      </p:grpSpPr>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="2" name="Slide Image Placeholder"/>
+          <p:cNvSpPr><a:spLocks noGrp="1" noRot="1" noChangeAspect="1"/></p:cNvSpPr>
+          <p:nvPr><p:ph type="sldImg"/></p:nvPr>
+        </p:nvSpPr>
+        <p:spPr/>
+      </p:sp>
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="3" name="Notes Placeholder"/>
+          <p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>
+          <p:nvPr><p:ph type="body" idx="1"/></p:nvPr>
+        </p:nvSpPr>
+        <p:spPr/>
+        <p:txBody>
+          <a:bodyPr/>
+          <a:lstStyle/>
+          ${paragraphsXml}
+        </p:txBody>
+      </p:sp>
+    </p:spTree>
+  </p:cSld>
+  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
+</p:notes>`;
+}
+
+/**
+ * Generate a notes slide relationships file
+ */
+function generateNotesSlideRelsXml(slideNumber: number): string {
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster" Target="../notesMasters/notesMaster1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="../slides/slide${slideNumber}.xml"/>
+</Relationships>`;
+}
+
+/**
+ * Add notes infrastructure to a PPTX zip
+ */
+async function addNotesToPptx(
+  zip: JSZip,
+  slideNotes: SlideNotes[],
+  slideCount: number,
+  verbose: boolean = false
+): Promise<void> {
+  if (slideNotes.length === 0) return;
+
+  if (verbose) {
+    console.error(`Adding speaker notes for ${slideNotes.length} slides`);
+  }
+
+  // Create notes master
+  zip.file("ppt/notesMasters/notesMaster1.xml", generateNotesMasterXml());
+  zip.file("ppt/notesMasters/_rels/notesMaster1.xml.rels", generateNotesMasterRelsXml());
+
+  // Create a map of slide number to notes
+  const notesMap = new Map<number, string>();
+  for (const sn of slideNotes) {
+    notesMap.set(sn.slideNumber, sn.notes);
+  }
+
+  // Create notes slides for each slide that has notes
+  for (let i = 1; i <= slideCount; i++) {
+    const notes = notesMap.get(i);
+    if (notes) {
+      zip.file(`ppt/notesSlides/notesSlide${i}.xml`, generateNotesSlideXml(notes));
+      zip.file(`ppt/notesSlides/_rels/notesSlide${i}.xml.rels`, generateNotesSlideRelsXml(i));
+
+      if (verbose) {
+        console.error(`  Created notesSlide${i}.xml`);
+      }
+    }
+  }
+
+  // Update slide relationships to link to notes slides
+  for (let i = 1; i <= slideCount; i++) {
+    if (notesMap.has(i)) {
+      const relsPath = `ppt/slides/_rels/slide${i}.xml.rels`;
+      const relsFile = zip.file(relsPath);
+
+      if (relsFile) {
+        let relsXml = await relsFile.async("string");
+
+        // Check if notesSlide relationship already exists
+        if (!relsXml.includes("relationships/notesSlide")) {
+          // Find highest rId
+          const rIdMatches = relsXml.match(/Id="rId(\d+)"/g) || [];
+          let maxRId = 0;
+          for (const match of rIdMatches) {
+            const num = parseInt(match.match(/rId(\d+)/)?.[1] || "0", 10);
+            if (num > maxRId) maxRId = num;
+          }
+          const newRId = `rId${maxRId + 1}`;
+
+          // Insert new relationship before closing tag
+          const newRel = `<Relationship Id="${newRId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide" Target="../notesSlides/notesSlide${i}.xml"/>`;
+          relsXml = relsXml.replace("</Relationships>", `${newRel}\n</Relationships>`);
+          zip.file(relsPath, relsXml);
+        }
+      } else {
+        // Create new rels file if it doesn't exist
+        const newRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide" Target="../notesSlides/notesSlide${i}.xml"/>
+</Relationships>`;
+        zip.file(relsPath, newRelsXml);
+      }
+    }
+  }
+
+  // Update presentation.xml.rels to include notesMaster
+  const presRelsPath = "ppt/_rels/presentation.xml.rels";
+  const presRelsFile = zip.file(presRelsPath);
+  if (presRelsFile) {
+    let presRelsXml = await presRelsFile.async("string");
+
+    if (!presRelsXml.includes("relationships/notesMaster")) {
+      // Find highest rId
+      const rIdMatches = presRelsXml.match(/Id="rId(\d+)"/g) || [];
+      let maxRId = 0;
+      for (const match of rIdMatches) {
+        const num = parseInt(match.match(/rId(\d+)/)?.[1] || "0", 10);
+        if (num > maxRId) maxRId = num;
+      }
+      const newRId = `rId${maxRId + 1}`;
+
+      const newRel = `<Relationship Id="${newRId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster" Target="notesMasters/notesMaster1.xml"/>`;
+      presRelsXml = presRelsXml.replace("</Relationships>", `${newRel}\n</Relationships>`);
+      zip.file(presRelsPath, presRelsXml);
+    }
+  }
+
+  // Update [Content_Types].xml to include notes types
+  const ctPath = "[Content_Types].xml";
+  const ctFile = zip.file(ctPath);
+  if (ctFile) {
+    let ctXml = await ctFile.async("string");
+
+    // Add notesMaster content type if not present
+    if (!ctXml.includes("notesMaster+xml")) {
+      const notesMasterOverride = `<Override PartName="/ppt/notesMasters/notesMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml"/>`;
+      ctXml = ctXml.replace("</Types>", `${notesMasterOverride}\n</Types>`);
+    }
+
+    // Add notesSlide content types for each slide with notes
+    for (let i = 1; i <= slideCount; i++) {
+      if (notesMap.has(i)) {
+        const partName = `/ppt/notesSlides/notesSlide${i}.xml`;
+        if (!ctXml.includes(partName)) {
+          const notesSlideOverride = `<Override PartName="${partName}" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml"/>`;
+          ctXml = ctXml.replace("</Types>", `${notesSlideOverride}\n</Types>`);
+        }
+      }
+    }
+
+    zip.file(ctPath, ctXml);
+  }
+
+  if (verbose) {
+    console.error(`Notes infrastructure added successfully`);
+  }
+}
+
 // === Core Logic ===
 
 export async function generateFromTemplate(
@@ -470,6 +771,11 @@ export async function generateFromTemplate(
 
   // Update [Content_Types].xml
   await updateContentTypes(zip, selectedSlides.length);
+
+  // Add speaker notes if provided
+  if (spec.slideNotes && spec.slideNotes.length > 0) {
+    await addNotesToPptx(zip, spec.slideNotes, selectedSlides.length, verbose);
+  }
 
   // Write output file
   const outputData = await zip.generateAsync({

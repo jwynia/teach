@@ -87,6 +87,8 @@ All critical issues have been resolved and the API is fully operational.
 
 | Date | Change | Impact |
 |------|--------|--------|
+| 2026-01-13 | **FEATURE**: PPTX speaker notes support (DEC-013) | PPTX generator can now add speaker notes to slides; notes appear in PowerPoint's Notes pane and Presenter View |
+| 2026-01-13 | **FEATURE**: RevealJS speaker notes from transcript | Slide generation now requires verbatim transcript as speaker notes; parsed and displayed in presenter view |
 | 2026-01-12 | **RESOLVED**: Authoring API fully operational | Dependencies installed via npm, database initialized, all endpoints verified working |
 | 2026-01-12 | **SECURITY**: API key security issue resolved | Removed exposed OpenRouter key from .env.example, replaced with placeholder |
 | 2026-01-12 | **TECHNICAL**: Bypassed broken pnpm | Used npm for dependency installation, fixed package version conflicts |

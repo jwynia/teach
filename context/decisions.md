@@ -376,3 +376,61 @@ When adding a new decision, use this format:
 - **Local Stable Diffusion**: Requires GPU, complex setup, defeats cloud-first approach
 
 **Plan File**: `.claude/plans/zesty-inventing-glacier.md`
+
+---
+
+### DEC-013: PPTX Speaker Notes from Transcript
+
+**Date**: 2026-01-13
+**Status**: Accepted
+
+**Context**: When generating slides from lesson transcript/narrative content, the verbatim transcript should be preserved as speaker notes for each slide. This supports:
+- Presenter reference during live delivery
+- TTS voiceover for automated video generation
+- Consistency between slide content and spoken narrative
+
+RevealJS export already supports speaker notes via `Note:` annotations parsed into `<aside class="notes">`. PPTX requires separate XML infrastructure.
+
+**Decision**: Extend the PPTX generator to create proper PowerPoint speaker notes by:
+
+1. **Notes Master** (`ppt/notesMasters/notesMaster1.xml`): Template defining notes page layout with slide preview and text area
+2. **Notes Slides** (`ppt/notesSlides/noteSlideN.xml`): One per slide containing the transcript text
+3. **Relationships**:
+   - Slide → Notes slide link in `ppt/slides/_rels/slideN.xml.rels`
+   - Notes slide → Notes master link in `ppt/notesSlides/_rels/noteSlideN.xml.rels`
+   - Presentation → Notes master link in `ppt/presentation.xml.rels`
+4. **Content Types**: Override entries for `notesSlide+xml` and `notesMaster+xml`
+
+**Implementation Location**: `/.claude/skills/presentation/pptx-generator/scripts/generate-from-template.ts`
+
+**XML Structure**:
+```
+ppt/
+├── notesMasters/
+│   ├── notesMaster1.xml
+│   └── _rels/notesMaster1.xml.rels
+├── notesSlides/
+│   ├── noteSlide1.xml (contains slide 1 transcript)
+│   ├── noteSlide2.xml
+│   └── _rels/
+│       ├── noteSlide1.xml.rels
+│       └── noteSlide2.xml.rels
+```
+
+**Rationale**:
+- Native PowerPoint notes pane is universally supported
+- Notes visible in Presenter View during slideshow
+- Notes export to PDF with `File > Print > Print Layout: Notes`
+- Verbatim transcript enables future TTS integration
+- Maintains consistency with RevealJS speaker notes support
+
+**Consequences**:
+- More complex PPTX generation (7 additional XML file types)
+- Larger PPTX file size (minimal, text only)
+- Notes master styling is basic (can be enhanced later)
+- Enables TTS video automation pipeline
+
+**Alternatives Considered**:
+- **Template placeholder `{{teaching_notes}}`**: Only works for visible slide content, not PowerPoint's notes pane
+- **Third-party library (pptxgenjs)**: Would require rewriting generator; current JSZip approach is working well
+- **Skip PPTX notes, use RevealJS only**: Loses PowerPoint's native presenter view support

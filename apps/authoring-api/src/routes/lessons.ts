@@ -393,7 +393,18 @@ Each slide should include metadata annotations:
 - Start with \`<!-- type: X -->\` where X is: assertion, definition, process, comparison, quote, question, example, summary
 - Add \`<!-- layout: X -->\` if needed: single (default), two-column, image-left, image-right, full-image
 - Include \`[IMAGE: description]\` for visual suggestions
-- Add \`Note:\` for speaker notes when helpful
+- REQUIRED: Add \`Note:\` with the verbatim transcript text that corresponds to this slide (for TTS voiceover)
+
+Example with speaker notes:
+\`\`\`
+<!-- type: assertion -->
+## AI reduces manual data entry by 40% in typical workflows
+
+[IMAGE: bar chart comparing manual vs AI-assisted data entry times]
+
+Note:
+When we look at the actual time savings, AI reduces manual data entry by about 40% in typical workflows. This isn't just about speed - it's about freeing up your team to focus on higher-value work that requires human judgment.
+\`\`\`
 
 ## Instructions
 1. Read the narrative and identify 4-8 key ideas worth a slide each
@@ -403,7 +414,7 @@ Each slide should include metadata annotations:
 5. Write the slide using the format for that type
 6. Headlines must be complete sentences (assertions), not topic phrases
 7. Include [IMAGE: description] for visual suggestions
-8. Add Note: for speaker notes when helpful
+8. REQUIRED: After each slide, include \`Note:\` with the exact verbatim transcript text that this slide was derived from. Preserve the original teaching language word-for-word - this will be used for TTS voiceover. Every slide must have a Note section.
 9. VARY the slide types - never use the same type twice in a row
 10. Output ONLY the slide markdown with annotations, no commentary
 
@@ -413,7 +424,8 @@ Each slide should include metadata annotations:
 - Walls of text (violates Three-second rule)
 - Same slide format repeated (creates monotony)
 - Decorative content that doesn't support the assertion (violates Coherence)
-- Missing type annotations`,
+- Missing type annotations
+- Missing or summarized speaker notes (must include verbatim transcript)`,
       prompt: `Convert this lesson narrative into slide-ready markdown with annotations:\n\n${narrativeContent}`,
     });
 
