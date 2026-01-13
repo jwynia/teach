@@ -34,6 +34,7 @@ import { UnitForm, type UnitFormData } from "../components/content/UnitForm";
 import { LessonForm, type LessonFormData } from "../components/content/LessonForm";
 import { LessonEditor } from "../components/content/LessonEditor";
 import { ThemeSelector } from "../components/settings/ThemeSelector";
+import { TemplateSelector } from "../components/settings/TemplateSelector";
 
 export function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -529,8 +530,9 @@ export function CourseDetailPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="settings" className="mt-6">
+            <TabsContent value="settings" className="mt-6 space-y-6">
               {courseId && <ThemeSelector courseId={courseId} />}
+              {courseId && <TemplateSelector courseId={courseId} />}
             </TabsContent>
           </Tabs>
         )}

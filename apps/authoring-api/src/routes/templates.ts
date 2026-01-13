@@ -66,42 +66,47 @@ templates.get("/starters", async (c) => {
 // Download specific starter template
 templates.get("/starters/:type/:templateId", async (c) => {
   const { type, templateId } = c.req.param();
-  
+
   if (!["pptx", "revealjs"].includes(type)) {
     return c.json({ error: "Invalid template type" }, 400);
   }
 
   try {
     const starterTemplatesPath = join(projectRoot, "storage/starter-templates");
-    let filePath: string;
-    let contentType: string;
-    let filename: string;
 
     if (type === "pptx") {
-      filePath = join(starterTemplatesPath, `pptx/${templateId}.pptx`);
-      contentType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-      filename = `${templateId}.pptx`;
+      // PPTX: serve the file directly
+      const filePath = join(starterTemplatesPath, `pptx/${templateId}.pptx`);
+      await stat(filePath);
+      const fileBuffer = await readFile(filePath);
+
+      c.header("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
+      c.header("Content-Disposition", `attachment; filename="${templateId}.pptx"`);
+      return c.body(fileBuffer);
     } else {
-      filePath = join(starterTemplatesPath, `revealjs/${templateId}.md`);
-      contentType = "text/markdown";
-      filename = `${templateId}.md`;
+      // RevealJS: generate HTML from markdown template
+      const mdPath = join(starterTemplatesPath, `revealjs/${templateId}.md`);
+      await stat(mdPath);
+      const markdownContent = await readFile(mdPath, "utf-8");
+
+      // Get manifest for template name
+      const manifestPath = join(starterTemplatesPath, "manifests/revealjs-manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf-8"));
+      const templateInfo = manifest[templateId] || { name: templateId };
+
+      const html = generateRevealJSTemplateHTML(markdownContent, templateInfo.name);
+
+      c.header("Content-Type", "text/html; charset=utf-8");
+      c.header("Content-Disposition", `attachment; filename="${templateId}.html"`);
+      return c.body(html);
     }
-
-    // Check if file exists
-    await stat(filePath);
-    const fileBuffer = await readFile(filePath);
-
-    c.header("Content-Type", contentType);
-    c.header("Content-Disposition", `attachment; filename="${filename}"`);
-    
-    return c.body(fileBuffer);
   } catch (error) {
     console.error(`Error downloading starter template ${type}/${templateId}:`, error);
-    
+
     if ((error as any).code === "ENOENT") {
       return c.json({ error: "Template not found" }, 404);
     }
-    
+
     return c.json({ error: "Failed to download template" }, 500);
   }
 });
@@ -552,7 +557,7 @@ templates.post("/:id/usage", async (c) => {
       args: [id]
     });
 
-    return c.json({ 
+    return c.json({
       template_id: id,
       message: "Usage recorded"
     });
@@ -561,3 +566,119 @@ templates.post("/:id/usage", async (c) => {
     return c.json({ error: "Failed to record usage" }, 500);
   }
 });
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+function generateRevealJSTemplateHTML(markdown: string, title: string): string {
+  const CDN_BASE = "https://unpkg.com/reveal.js@5";
+
+  // Extract frontmatter and custom CSS from markdown
+  const frontmatterMatch = markdown.match(/^---\n([\s\S]*?)\n---/);
+  const styleMatch = markdown.match(/<style>([\s\S]*?)<\/style>/);
+
+  // Parse frontmatter for theme
+  let theme = "white";
+  if (frontmatterMatch) {
+    const themeMatch = frontmatterMatch[1].match(/theme:\s*(\w+)/);
+    if (themeMatch) theme = themeMatch[1];
+  }
+
+  // Get custom CSS
+  const customCSS = styleMatch ? styleMatch[1] : "";
+
+  // Remove frontmatter and style block, then split into slides
+  const content = markdown
+    .replace(/^---\n[\s\S]*?\n---\n?/, "")
+    .replace(/<style>[\s\S]*?<\/style>\n?/, "")
+    .trim();
+
+  // Parse slides (split by ---)
+  const slideContents = content.split(/\n---\s*\n/);
+
+  const slidesHtml = slideContents
+    .map((slideContent) => {
+      const trimmed = slideContent.trim();
+      if (!trimmed) return "";
+
+      // Check for vertical slides (--)
+      const verticalParts = trimmed.split(/\n--\s*\n/);
+
+      if (verticalParts.length === 1) {
+        return `      <section data-markdown>
+        <textarea data-template>
+${trimmed}
+        </textarea>
+      </section>`;
+      } else {
+        const verticalHtml = verticalParts
+          .map(
+            (vp) => `        <section data-markdown>
+          <textarea data-template>
+${vp.trim()}
+          </textarea>
+        </section>`
+          )
+          .join("\n");
+
+        return `      <section>
+${verticalHtml}
+      </section>`;
+      }
+    })
+    .filter(Boolean)
+    .join("\n\n");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>${escapeHtmlForTemplate(title)} - Starter Template</title>
+  <link rel="stylesheet" href="${CDN_BASE}/dist/reset.css">
+  <link rel="stylesheet" href="${CDN_BASE}/dist/reveal.css">
+  <link rel="stylesheet" href="${CDN_BASE}/dist/theme/${theme}.css">
+  <link rel="stylesheet" href="${CDN_BASE}/plugin/highlight/monokai.css">
+
+  <!-- ============================================================
+       CUSTOMIZE YOUR TEMPLATE BELOW
+
+       Edit the CSS variables and styles to match your branding.
+       Colors, fonts, and layouts can all be modified here.
+       ============================================================ -->
+  <style>
+${customCSS}
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+${slidesHtml}
+    </div>
+  </div>
+
+  <script src="${CDN_BASE}/dist/reveal.js"></script>
+  <script src="${CDN_BASE}/plugin/markdown/markdown.js"></script>
+  <script src="${CDN_BASE}/plugin/highlight/highlight.js"></script>
+  <script src="${CDN_BASE}/plugin/notes/notes.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      slideNumber: true,
+      controls: true,
+      progress: true,
+      plugins: [RevealMarkdown, RevealHighlight, RevealNotes]
+    });
+  </script>
+</body>
+</html>`;
+}
+
+function escapeHtmlForTemplate(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}

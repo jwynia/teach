@@ -18,7 +18,7 @@ import {
   Label,
   Textarea,
 } from "@teach/ui";
-import { PlusCircle, BookOpen, ChevronRight, Loader2 } from "lucide-react";
+import { PlusCircle, BookOpen, ChevronRight, Loader2, FileText } from "lucide-react";
 import { useCourses, apiCall, type Course } from "../hooks/useApi";
 import { LoadingState } from "../components/common/LoadingState";
 import { ErrorState } from "../components/common/ErrorState";
@@ -53,10 +53,16 @@ export function CoursesPage() {
             Create and manage your course content
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          New Course
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate("/templates")}>
+            <FileText className="mr-2 h-4 w-4" />
+            Templates
+          </Button>
+          <Button onClick={() => setShowCreate(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            New Course
+          </Button>
+        </div>
       </header>
 
       <main className="max-w-6xl">

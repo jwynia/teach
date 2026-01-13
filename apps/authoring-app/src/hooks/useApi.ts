@@ -313,3 +313,92 @@ export function useCourseTheme(courseId: string | null) {
     courseId ? `/api/courses/${courseId}/theme` : null
   );
 }
+
+// Starter Template API
+export interface StarterTemplate {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  type: "pptx" | "revealjs";
+  supported_document_types: string[];
+  download_url: string;
+}
+
+export interface StarterTemplatesResponse {
+  starters: {
+    pptx: StarterTemplate[];
+    revealjs: StarterTemplate[];
+  };
+  total: number;
+}
+
+export interface TemplateManifestPlaceholder {
+  name: string;
+  description: string;
+  required: boolean;
+  example?: string;
+  location?: string;
+}
+
+export interface PptxLayout {
+  name: string;
+  slideNumber: number;
+  description: string;
+  placeholders: TemplateManifestPlaceholder[];
+}
+
+export interface RevealJsSlideType {
+  name: string;
+  description: string;
+  css_class?: string;
+  navigation?: string;
+  placeholders: TemplateManifestPlaceholder[];
+}
+
+export interface TemplateManifest {
+  template_id: string;
+  type: "pptx" | "revealjs";
+  manifest: {
+    name: string;
+    description: string;
+    version: string;
+    layouts?: PptxLayout[];
+    slide_types?: RevealJsSlideType[];
+    frontmatter_fields?: Array<{
+      name: string;
+      placeholder: string;
+      description: string;
+      required: boolean;
+    }>;
+    features?: Record<string, unknown>;
+    color_scheme: Record<string, string>;
+    supported_document_types: string[];
+  };
+}
+
+export interface CourseExportTemplateResponse {
+  type: string | null;
+  templateId: string | null;
+}
+
+export function useStarterTemplates() {
+  return useApi<StarterTemplatesResponse>("/api/templates/starters");
+}
+
+export function useTemplateManifest(
+  type: string | null,
+  templateId: string | null
+) {
+  return useApi<TemplateManifest>(
+    type && templateId
+      ? `/api/templates/starters/${type}/${templateId}/manifest`
+      : null
+  );
+}
+
+export function useCourseExportTemplate(courseId: string | null) {
+  return useApi<CourseExportTemplateResponse>(
+    courseId ? `/api/courses/${courseId}/export-template` : null
+  );
+}

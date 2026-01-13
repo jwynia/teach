@@ -44,6 +44,8 @@ interface CourseRow {
   default_progression_path_id: string | null;
   presentation_theme_id: string | null;
   theme_overrides: string | null;
+  export_template_type: string | null;
+  export_template_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -1067,5 +1069,78 @@ function escapeHtmlForAttr(text: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+// ============================================================================
+// Course Export Template Endpoints
+// ============================================================================
+
+const ExportTemplateSchema = z.object({
+  type: z.enum(["pptx", "revealjs"]),
+  templateId: z.string().min(1),
+});
+
+// GET /api/courses/:id/export-template - Get course's export template setting
+courses.get("/:id/export-template", async (c) => {
+  const id = c.req.param("id");
+
+  const row = await queryOne<CourseRow>(
+    "SELECT * FROM courses WHERE id = ?",
+    [id]
+  );
+
+  if (!row) {
+    return c.json({ error: "Course not found" }, 404);
+  }
+
+  return c.json({
+    type: row.export_template_type,
+    templateId: row.export_template_id,
+  });
+});
+
+// PUT /api/courses/:id/export-template - Set course's export template
+courses.put("/:id/export-template", zValidator("json", ExportTemplateSchema), async (c) => {
+  const id = c.req.param("id");
+  const { type, templateId } = c.req.valid("json");
+
+  // Check course exists
+  const existing = await queryOne<CourseRow>(
+    "SELECT * FROM courses WHERE id = ?",
+    [id]
+  );
+
+  if (!existing) {
+    return c.json({ error: "Course not found" }, 404);
+  }
+
+  await execute(
+    `UPDATE courses SET export_template_type = ?, export_template_id = ?, updated_at = ? WHERE id = ?`,
+    [type, templateId, new Date().toISOString(), id]
+  );
+
+  return c.json({ success: true, type, templateId });
+});
+
+// DELETE /api/courses/:id/export-template - Clear course's export template
+courses.delete("/:id/export-template", async (c) => {
+  const id = c.req.param("id");
+
+  // Check course exists
+  const existing = await queryOne<CourseRow>(
+    "SELECT * FROM courses WHERE id = ?",
+    [id]
+  );
+
+  if (!existing) {
+    return c.json({ error: "Course not found" }, 404);
+  }
+
+  await execute(
+    `UPDATE courses SET export_template_type = NULL, export_template_id = NULL, updated_at = ? WHERE id = ?`,
+    [new Date().toISOString(), id]
+  );
+
+  return c.json({ success: true });
+});
 
 export { courses };
