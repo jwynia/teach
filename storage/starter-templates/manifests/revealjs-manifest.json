@@ -365,6 +365,75 @@
             "location": "speaker_notes"
           }
         ]
+      },
+      {
+        "name": "Quote Slide",
+        "description": "Impactful quote with attribution, centered styling",
+        "css_class": "quote-slide",
+        "placeholders": [
+          {
+            "name": "{{quote_text}}",
+            "description": "The quote content (appears in blockquote)",
+            "required": true,
+            "example": "The greatest glory in living lies not in never falling, but in rising every time we fall."
+          },
+          {
+            "name": "{{attribution}}",
+            "description": "Quote attribution (author, source)",
+            "required": false,
+            "example": "Nelson Mandela"
+          },
+          {
+            "name": "{{quote_notes}}",
+            "description": "Speaker notes about the quote's relevance",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Full Image Slide",
+        "description": "Full-bleed background image with optional caption",
+        "css_class": "full-image-slide",
+        "placeholders": [
+          {
+            "name": "{{image_url}}",
+            "description": "URL or path to the background image",
+            "required": true,
+            "example": "images/team-collaboration.jpg"
+          },
+          {
+            "name": "{{image_caption}}",
+            "description": "Optional caption text overlaid at bottom",
+            "required": false,
+            "example": "A team collaborating on a data privacy review"
+          },
+          {
+            "name": "{{image_notes}}",
+            "description": "Speaker notes about the image",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
+      },
+      {
+        "name": "Big Text Slide",
+        "description": "Single impactful statement, large centered text",
+        "css_class": "big-text-slide",
+        "placeholders": [
+          {
+            "name": "{{big_text_content}}",
+            "description": "The key message or statement to display prominently",
+            "required": true,
+            "example": "Privacy is not optional."
+          },
+          {
+            "name": "{{big_text_notes}}",
+            "description": "Speaker notes for this emphasis slide",
+            "required": false,
+            "location": "speaker_notes"
+          }
+        ]
       }
     ],
     "features": {

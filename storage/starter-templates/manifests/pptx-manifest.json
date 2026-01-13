@@ -178,6 +178,57 @@
             "example": "Encourage sharing of real experiences. Watch for compliance questions - refer to legal team if needed."
           }
         ]
+      },
+      {
+        "name": "Quote",
+        "slideNumber": 8,
+        "description": "Impactful quote slide with attribution",
+        "placeholders": [
+          {
+            "name": "{{quote_text}}",
+            "description": "The quote content",
+            "required": true,
+            "example": "The greatest glory in living lies not in never falling, but in rising every time we fall."
+          },
+          {
+            "name": "{{attribution}}",
+            "description": "Quote attribution (author, source)",
+            "required": false,
+            "example": "Nelson Mandela"
+          }
+        ]
+      },
+      {
+        "name": "Full Image",
+        "slideNumber": 9,
+        "description": "Full-bleed image slide with caption overlay",
+        "placeholders": [
+          {
+            "name": "{{image}}",
+            "description": "Image to display (add via PowerPoint)",
+            "required": true,
+            "example": "[Insert image via PowerPoint]"
+          },
+          {
+            "name": "{{image_caption}}",
+            "description": "Optional caption text at bottom of slide",
+            "required": false,
+            "example": "A team collaborating on a data privacy review"
+          }
+        ]
+      },
+      {
+        "name": "Big Text",
+        "slideNumber": 10,
+        "description": "Single impactful statement or key message",
+        "placeholders": [
+          {
+            "name": "{{big_text_content}}",
+            "description": "The key message or statement to display prominently",
+            "required": true,
+            "example": "Privacy is not optional."
+          }
+        ]
       }
     ],
     "color_scheme": {
