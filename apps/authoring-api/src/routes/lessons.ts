@@ -437,4 +437,167 @@ When we look at the actual time savings, AI reduces manual data entry by about 4
   }
 });
 
+// === RevealJS Preview Support ===
+
+interface SlideAnnotations {
+  type: string;
+  layout: string;
+  content: string;
+  notes: string | null;
+}
+
+function parseSlideAnnotations(slideMarkdown: string): SlideAnnotations {
+  const typeMatch = slideMarkdown.match(/<!--\s*type:\s*(\w+)\s*-->/);
+  const layoutMatch = slideMarkdown.match(/<!--\s*layout:\s*([\w-]+)\s*-->/);
+
+  // Extract speaker notes
+  const notesMatch = slideMarkdown.match(/\n\s*Notes?:\s*([\s\S]*?)$/i);
+  const notes = notesMatch ? notesMatch[1].trim() : null;
+
+  // Strip annotations from display content
+  let content = slideMarkdown
+    .replace(/<!--\s*type:\s*\w+\s*-->/g, '')
+    .replace(/<!--\s*layout:\s*[\w-]+\s*-->/g, '')
+    .replace(/<!--\s*emphasis:\s*\w+\s*-->/g, '')
+    .replace(/\n\s*Notes?:\s*[\s\S]*?$/i, '')
+    .trim();
+
+  // Transform placeholders
+  content = content.replace(/\[IMAGE:\s*([^\]]+)\]/g, '<div class="image-placeholder">📊 $1</div>');
+  content = content.replace(/\[DIAGRAM:\s*([^\]]+)\]/g, '<div class="diagram-placeholder">📈 $1</div>');
+
+  return {
+    type: typeMatch?.[1] || 'default',
+    layout: layoutMatch?.[1] || 'single',
+    content,
+    notes
+  };
+}
+
+function getSlideClasses(type: string, layout: string): string {
+  const classes: string[] = [];
+
+  switch (type) {
+    case 'quote': classes.push('slide-quote'); break;
+    case 'big-quote':
+    case 'giant-quote': classes.push('slide-big-quote'); break;
+    case 'definition': classes.push('slide-definition'); break;
+    case 'question': classes.push('slide-question'); break;
+    case 'comparison': classes.push('slide-comparison'); break;
+    case 'process': classes.push('slide-process'); break;
+    case 'summary': classes.push('slide-summary'); break;
+    case 'assertion': classes.push('slide-assertion'); break;
+    case 'example': classes.push('slide-example'); break;
+  }
+
+  switch (layout) {
+    case 'two-column': classes.push('layout-two-column'); break;
+    case 'image-left': classes.push('layout-image-left'); break;
+    case 'image-right': classes.push('layout-image-right'); break;
+    case 'full-image': classes.push('layout-full-image'); break;
+  }
+
+  return classes.join(' ');
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function generateLessonRevealJS(markdown: string, title: string): string {
+  const CDN_BASE = "https://unpkg.com/reveal.js@5";
+
+  // Split by slide separators
+  const parts = markdown.split(/\n---\s*\n/);
+  const slidesHtml: string[] = [];
+
+  for (const part of parts) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+
+    const annotations = parseSlideAnnotations(trimmed);
+    const classes = getSlideClasses(annotations.type, annotations.layout);
+    const classAttr = classes ? ` class="${classes}"` : '';
+    const notesSection = annotations.notes ? `\n\nNote:\n${annotations.notes}` : '';
+
+    slidesHtml.push(`      <section data-markdown${classAttr}>
+        <textarea data-template>
+${annotations.content}${notesSection}
+        </textarea>
+      </section>`);
+  }
+
+  const customCSS = `
+  <style>
+    .slide-quote blockquote { font-size: 1.4em; font-style: italic; border-left: 4px solid currentColor; padding-left: 1em; }
+    .slide-big-quote { display: flex !important; align-items: center !important; justify-content: center !important; }
+    .slide-big-quote blockquote, .slide-big-quote p:first-of-type { font-size: 2.5em !important; font-style: italic; max-width: 80%; margin: 0 auto; border: none; }
+    .slide-definition h2 { color: var(--r-heading-color); }
+    .slide-definition strong { color: var(--r-link-color); }
+    .slide-question { text-align: center; }
+    .slide-question h2 { font-size: 2em; }
+    .slide-comparison table { width: 100%; margin: 1em 0; }
+    .slide-comparison th, .slide-comparison td { padding: 0.5em; border: 1px solid currentColor; }
+    .slide-process ol { text-align: left; }
+    .slide-summary ul { text-align: left; }
+    .image-placeholder, .diagram-placeholder { background: rgba(128, 128, 128, 0.2); border: 2px dashed currentColor; border-radius: 8px; padding: 2em; margin: 1em 0; text-align: center; font-style: italic; }
+    .layout-two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 2em; }
+  </style>`;
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(title)}</title>
+  <link rel="stylesheet" href="${CDN_BASE}/dist/reset.css">
+  <link rel="stylesheet" href="${CDN_BASE}/dist/reveal.css">
+  <link rel="stylesheet" href="${CDN_BASE}/dist/theme/black.css">
+  <link rel="stylesheet" href="${CDN_BASE}/plugin/highlight/monokai.css">
+  ${customCSS}
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+${slidesHtml.join("\n\n")}
+    </div>
+  </div>
+  <script src="${CDN_BASE}/dist/reveal.js"></script>
+  <script src="${CDN_BASE}/plugin/markdown/markdown.js"></script>
+  <script src="${CDN_BASE}/plugin/highlight/highlight.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: false,
+      history: false,
+      embedded: true,
+      showNotes: false,
+      plugins: [RevealMarkdown, RevealHighlight]
+    });
+  </script>
+</body>
+</html>`;
+}
+
+// GET /api/lessons/:id/preview/revealjs - Get RevealJS preview for lesson slides
+lessons.get("/:id/preview/revealjs", async (c) => {
+  const id = c.req.param("id");
+
+  const row = await queryOne<LessonRow>("SELECT * FROM lessons WHERE id = ?", [id]);
+  if (!row) {
+    return c.json({ error: "Lesson not found" }, 404);
+  }
+
+  const slideContent = row.slide_content || '';
+  if (!slideContent.trim()) {
+    // Return minimal RevealJS with message
+    const emptyHtml = generateLessonRevealJS("## No slides yet\n\nGenerate slides from the narrative content.", row.title);
+    c.header("Content-Type", "text/html");
+    return c.body(emptyHtml);
+  }
+
+  const html = generateLessonRevealJS(slideContent, row.title);
+  c.header("Content-Type", "text/html");
+  return c.body(html);
+});
+
 export { lessons };

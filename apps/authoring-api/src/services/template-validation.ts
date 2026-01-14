@@ -1,7 +1,8 @@
 // Template validation service with LLM-powered error assistance
 // Validates PPTX and RevealJS templates and provides helpful error messages
 
-import { mastra } from "../mastra/index.js";
+import { generateText } from "ai";
+import { getModelFromEnv } from "../mastra/providers.js";
 import { readFile } from "fs/promises";
 import { join, extname } from "path";
 
@@ -77,10 +78,15 @@ export class LLMErrorAssistant {
     userContext?: string
   ): Promise<LLMEnhancedError> {
     const prompt = this.buildErrorAssistancePrompt(error, templateType, userContext);
-    
+
     try {
-      const response = await mastra.llm.generate(prompt, { maxTokens: 500 });
-      const assistance = this.parseAssistanceResponse(response);
+      const model = getModelFromEnv();
+      const result = await generateText({
+        model,
+        prompt,
+        maxTokens: 500,
+      });
+      const assistance = this.parseAssistanceResponse(result.text);
       
       return {
         code: error.code,

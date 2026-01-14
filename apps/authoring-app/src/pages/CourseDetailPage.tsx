@@ -35,6 +35,7 @@ import { LessonForm, type LessonFormData } from "../components/content/LessonFor
 import { LessonEditor } from "../components/content/LessonEditor";
 import { ThemeSelector } from "../components/settings/ThemeSelector";
 import { TemplateSelector } from "../components/settings/TemplateSelector";
+import { ExportPanel } from "../components/settings/ExportPanel";
 
 export function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -354,10 +355,16 @@ export function CourseDetailPage() {
 
   const handleSaveSlideContent = useCallback(
     async (slideContent: string) => {
-      if (!selectedLesson) return;
+      console.log("handleSaveSlideContent called, selectedLesson:", selectedLesson?.id);
+      if (!selectedLesson) {
+        console.error("No selectedLesson!");
+        return;
+      }
+      console.log("Calling API: PUT /api/lessons/" + selectedLesson.id);
       await apiCall(`/api/lessons/${selectedLesson.id}`, "PUT", {
         slideContent,
       });
+      console.log("API call completed successfully");
       refetchSelectedLesson();
       refetchLessonsForUnit(selectedLesson.unitId);
     },
@@ -531,6 +538,7 @@ export function CourseDetailPage() {
             </TabsContent>
 
             <TabsContent value="settings" className="mt-6 space-y-6">
+              {courseId && <ExportPanel courseId={courseId} courseTitle={course.title} />}
               {courseId && <ThemeSelector courseId={courseId} />}
               {courseId && <TemplateSelector courseId={courseId} />}
             </TabsContent>

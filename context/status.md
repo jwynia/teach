@@ -87,6 +87,10 @@ All critical issues have been resolved and the API is fully operational.
 
 | Date | Change | Impact |
 |------|--------|--------|
+| 2026-01-13 | **FEATURE**: Course export panel with download buttons | Settings tab now has ExportPanel component with download buttons for RevealJS, PPTX, Instructor Guide, and JSON formats |
+| 2026-01-13 | **FEATURE**: PPTX course export with speaker notes | `GET /api/courses/:id/export/pptx` generates PPTX with slides from course content and speaker notes from verbatim transcripts |
+| 2026-01-13 | **FEATURE**: Instructor guide markdown export | `GET /api/courses/:id/export/instructor-guide` generates markdown document with all lesson content and activities |
+| 2026-01-13 | **FEATURE**: JSON course export download endpoint | `GET /api/courses/:id/export` returns full course data as downloadable JSON file |
 | 2026-01-13 | **FEATURE**: PPTX speaker notes support (DEC-013) | PPTX generator can now add speaker notes to slides; notes appear in PowerPoint's Notes pane and Presenter View |
 | 2026-01-13 | **FEATURE**: RevealJS speaker notes from transcript | Slide generation now requires verbatim transcript as speaker notes; parsed and displayed in presenter view |
 | 2026-01-12 | **RESOLVED**: Authoring API fully operational | Dependencies installed via npm, database initialized, all endpoints verified working |

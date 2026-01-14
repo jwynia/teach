@@ -15,6 +15,7 @@ import {
 import { ArrowLeft, Edit2, Sparkles } from "lucide-react";
 import type { Lesson, Unit } from "../../hooks/useApi";
 import { MarkdownEditor } from "./MarkdownEditor";
+import { SlideEditor } from "./SlideEditor";
 
 interface LessonEditorProps {
   lesson: Lesson;
@@ -76,10 +77,15 @@ export function LessonEditor({
   };
 
   const handleSaveSlides = async () => {
+    console.log("handleSaveSlides called, slideContent length:", slideContent.length);
     setSavingSlides(true);
     try {
       await onSaveSlideContent(slideContent);
+      console.log("Save successful");
       setHasSlideChanges(false);
+    } catch (err) {
+      console.error("Failed to save slides:", err);
+      alert(`Failed to save slides: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setSavingSlides(false);
     }
@@ -221,21 +227,26 @@ Wrap up with key takeaways."
                     )}
                   </div>
                 </div>
-                <MarkdownEditor
+                <SlideEditor
+                  lessonId={lesson.id}
                   value={slideContent}
                   onChange={handleSlideChange}
                   onSave={handleSaveSlides}
                   saving={savingSlides}
-                  placeholder="## Slide Title
+                  placeholder="<!-- type: assertion -->
+## Your main point as a complete sentence
 
-- Key point 1 (keep under 10 words)
-- Key point 2
-- Key point 3
+[IMAGE: description of visual]
 
-## Next Slide
+Note:
+The verbatim transcript for this slide goes here.
 
-- Another key point
-- Supporting detail"
+---
+
+<!-- type: definition -->
+## Key Term
+
+**Definition:** Clear explanation in one sentence."
                 />
               </div>
             </TabsContent>
