@@ -565,13 +565,11 @@ ${slidesHtml.join("\n\n")}
   <script src="${CDN_BASE}/dist/reveal.js"></script>
   <script src="${CDN_BASE}/plugin/markdown/markdown.js"></script>
   <script src="${CDN_BASE}/plugin/highlight/highlight.js"></script>
+  <script src="${CDN_BASE}/plugin/notes/notes.js"></script>
   <script>
     Reveal.initialize({
-      hash: false,
-      history: false,
-      embedded: true,
-      showNotes: false,
-      plugins: [RevealMarkdown, RevealHighlight]
+      hash: true,
+      plugins: [RevealMarkdown, RevealHighlight, RevealNotes]
     });
   </script>
 </body>

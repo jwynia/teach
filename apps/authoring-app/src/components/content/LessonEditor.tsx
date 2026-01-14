@@ -77,11 +77,9 @@ export function LessonEditor({
   };
 
   const handleSaveSlides = async () => {
-    console.log("handleSaveSlides called, slideContent length:", slideContent.length);
     setSavingSlides(true);
     try {
       await onSaveSlideContent(slideContent);
-      console.log("Save successful");
       setHasSlideChanges(false);
     } catch (err) {
       console.error("Failed to save slides:", err);

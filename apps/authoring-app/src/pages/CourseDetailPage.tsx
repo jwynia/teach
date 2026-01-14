@@ -355,16 +355,10 @@ export function CourseDetailPage() {
 
   const handleSaveSlideContent = useCallback(
     async (slideContent: string) => {
-      console.log("handleSaveSlideContent called, selectedLesson:", selectedLesson?.id);
-      if (!selectedLesson) {
-        console.error("No selectedLesson!");
-        return;
-      }
-      console.log("Calling API: PUT /api/lessons/" + selectedLesson.id);
+      if (!selectedLesson) return;
       await apiCall(`/api/lessons/${selectedLesson.id}`, "PUT", {
         slideContent,
       });
-      console.log("API call completed successfully");
       refetchSelectedLesson();
       refetchLessonsForUnit(selectedLesson.unitId);
     },
