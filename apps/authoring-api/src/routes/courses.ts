@@ -216,8 +216,18 @@ courses.get("/:id", async (c) => {
             [lessonRow.id]
           );
 
+          // Return lesson without full content for course overview
           return {
-            ...mapLessonRow(lessonRow),
+            id: lessonRow.id,
+            unitId: lessonRow.unit_id,
+            title: lessonRow.title,
+            description: lessonRow.description,
+            order: lessonRow.order,
+            audienceLayer: lessonRow.audience_layer,
+            contentType: lessonRow.content_type,
+            contentLength: lessonRow.content_body?.length || 0,
+            createdAt: lessonRow.created_at,
+            updatedAt: lessonRow.updated_at,
             activities: activityRows.map(mapActivityRow),
           };
         })

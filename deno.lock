@@ -18,6 +18,128 @@
         "npm:turbo@^2.3.3",
         "npm:typescript@^5.7.2"
       ]
+    },
+    "members": {
+      "apps/authoring-api": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@ai-sdk/anthropic@^1.1.6",
+            "npm:@ai-sdk/openai@^1.1.9",
+            "npm:@hono/node-server@^1.13.8",
+            "npm:@hono/zod-validator@~0.4.3",
+            "npm:@libsql/client@0.14",
+            "npm:@mastra/core@beta",
+            "npm:@mastra/hono@beta",
+            "npm:@mastra/libsql@beta",
+            "npm:@types/node@^22.10.5",
+            "npm:@types/xmldom@~0.1.34",
+            "npm:@xmldom/xmldom@~0.9.8",
+            "npm:ai@4",
+            "npm:docx@^9.0.2",
+            "npm:hono@^4.6.18",
+            "npm:jszip@^3.10.1",
+            "npm:pdf-lib@^1.17.1",
+            "npm:pptx-automizer@~0.8.1",
+            "npm:pptxgenjs@^4.0.1",
+            "npm:tsx@^4.19.2",
+            "npm:typescript@^5.7.2",
+            "npm:xlsx@~0.18.5",
+            "npm:zod@^3.24.1"
+          ]
+        }
+      },
+      "apps/authoring-app": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/react-dom@^18.3.5",
+            "npm:@types/react@^18.3.18",
+            "npm:@vitejs/plugin-react@^4.3.4",
+            "npm:autoprefixer@^10.4.20",
+            "npm:lucide-react@0.469",
+            "npm:postcss@^8.4.49",
+            "npm:react-dom@19",
+            "npm:react-markdown@^10.1.0",
+            "npm:react-router-dom@^7.1.1",
+            "npm:react@19",
+            "npm:tailwindcss@^3.4.17",
+            "npm:typescript@^5.7.2",
+            "npm:vite@^6.0.7"
+          ]
+        }
+      },
+      "apps/delivery-api": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@ai-sdk/anthropic@^1.1.6",
+            "npm:@ai-sdk/openai@^1.1.9",
+            "npm:@hono/node-server@^1.13.8",
+            "npm:@libsql/client@0.14",
+            "npm:@mastra/core@beta",
+            "npm:@mastra/hono@beta",
+            "npm:@mastra/libsql@beta",
+            "npm:@types/node@^22.10.5",
+            "npm:ai@4",
+            "npm:hono@^4.6.18",
+            "npm:tsx@^4.19.2",
+            "npm:typescript@^5.7.2",
+            "npm:zod@^3.24.1"
+          ]
+        }
+      },
+      "apps/delivery-app": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@types/react-dom@^18.3.5",
+            "npm:@types/react@^18.3.18",
+            "npm:@vitejs/plugin-react@^4.3.4",
+            "npm:autoprefixer@^10.4.20",
+            "npm:lucide-react@0.469",
+            "npm:postcss@^8.4.49",
+            "npm:react-dom@19",
+            "npm:react-router-dom@^7.1.1",
+            "npm:react@19",
+            "npm:tailwindcss@^3.4.17",
+            "npm:typescript@^5.7.2",
+            "npm:vite@^6.0.7"
+          ]
+        }
+      },
+      "packages/course-schema": {
+        "packageJson": {
+          "dependencies": [
+            "npm:typescript@^5.7.2",
+            "npm:zod@^3.24.1"
+          ]
+        }
+      },
+      "packages/types": {
+        "packageJson": {
+          "dependencies": [
+            "npm:typescript@^5.7.2"
+          ]
+        }
+      },
+      "packages/ui": {
+        "packageJson": {
+          "dependencies": [
+            "npm:@radix-ui/react-alert-dialog@^1.1.15",
+            "npm:@radix-ui/react-dialog@^1.1.15",
+            "npm:@radix-ui/react-label@^2.1.8",
+            "npm:@radix-ui/react-progress@^1.1.1",
+            "npm:@radix-ui/react-select@^2.2.6",
+            "npm:@radix-ui/react-separator@^1.1.8",
+            "npm:@radix-ui/react-slot@^1.1.1",
+            "npm:@radix-ui/react-tabs@^1.1.13",
+            "npm:@types/react-dom@^18.3.5",
+            "npm:@types/react@^18.3.18",
+            "npm:class-variance-authority@~0.7.1",
+            "npm:clsx@^2.1.1",
+            "npm:lucide-react@0.469",
+            "npm:tailwind-merge@^2.6.0",
+            "npm:typescript@^5.7.2"
+          ]
+        }
+      }
     }
   }
 }
