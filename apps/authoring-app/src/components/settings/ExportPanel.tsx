@@ -14,7 +14,7 @@ interface ExportPanelProps {
   courseTitle: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+const API_BASE = "/api";
 
 type ExportFormat = "revealjs" | "pptx" | "docx" | "json";
 

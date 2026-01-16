@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Textarea,
   Button,
@@ -14,7 +13,7 @@ interface SlideEditorProps {
   placeholder?: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+const API_BASE = "/api";
 
 export function SlideEditor({
   lessonId,
@@ -24,8 +23,6 @@ export function SlideEditor({
   saving,
   placeholder = "Write your slide content in markdown...",
 }: SlideEditorProps) {
-  const [previewError, setPreviewError] = useState<string | null>(null);
-
   const handleOpenPreview = () => {
     // Open the preview endpoint in a new tab
     const previewUrl = `${API_BASE}/lessons/${lessonId}/preview/revealjs`;
@@ -69,10 +66,6 @@ export function SlideEditor({
         Slides are separated by <code className="px-1 py-0.5 bg-muted rounded">---</code> on its own line.
         Speaker notes start with <code className="px-1 py-0.5 bg-muted rounded">Note:</code>
       </p>
-
-      {previewError && (
-        <p className="text-xs text-destructive">{previewError}</p>
-      )}
     </div>
   );
 }
