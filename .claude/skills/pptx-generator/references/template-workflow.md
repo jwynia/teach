@@ -22,6 +22,13 @@ Template mode enables you to:
 
 3. **Use Placeholder Types**: When possible, use PowerPoint's built-in placeholder types (Title, Subtitle, Content)
    - These are easier to identify programmatically
+   - Placeholder shapes inherit formatting from the layout automatically
+   - Regular text boxes do NOT inherit - they must have explicit formatting
+
+4. **Understand the Inheritance Chain**: PowerPoint uses a hierarchy:
+   - Theme → Slide Master → Slide Layout → Slide
+   - Text formatting (colors, sizes, bullets) flows down this chain
+   - Text CONTENT does not inherit - it must be in the slide itself
 
 ## Analyze & Replace Workflow
 
@@ -162,6 +169,38 @@ PowerPoint may internally split text like:
 **Cause**: The replacement process preserves paragraph-level formatting but may not preserve character-level formatting within runs.
 
 **Solution**: Apply formatting at the paragraph level in your template, not to individual characters within the placeholder.
+
+### Text Shows Wrong Color (e.g., Black Instead of White)
+
+**Cause**: Text color was defined in the text run properties (`<a:rPr>`) rather than in the layout's list style (`<a:lstStyle>`).
+
+**Solution**: When creating templates programmatically:
+1. Define text colors in the layout's `<a:lstStyle>/<a:lvl1pPr>/<a:defRPr>` element
+2. Use empty `<a:rPr lang="en-US"/>` in the actual text runs so they inherit from lstStyle
+3. Slides should have empty `<a:lstStyle/>` to inherit from the layout
+
+### Unwanted Bullet Points Appearing
+
+**Cause**: The slide master's `<p:bodyStyle>` defines bullets by default for body placeholders.
+
+**Solution**: Add `<a:buNone/>` inside `<a:lvl1pPr>` in the layout's placeholder definition to suppress bullets:
+```xml
+<a:lstStyle>
+  <a:lvl1pPr>
+    <a:buNone/>  <!-- Suppresses bullets -->
+    <a:defRPr>...</a:defRPr>
+  </a:lvl1pPr>
+</a:lstStyle>
+```
+
+### Placeholder Text Not Appearing on Slides
+
+**Cause**: Text content in layouts does NOT automatically appear on slides using that layout. In OOXML, only formatting inherits, not content.
+
+**Solution**: Ensure the slide XML includes the placeholder text:
+- Slides must have their own `<p:txBody>` with the text content
+- The `{{PLACEHOLDER}}` text must be in the slide, not just the layout
+- Use `generate-template-proper.ts` which handles this automatically
 
 ### Wrong Slides Selected
 

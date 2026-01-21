@@ -277,12 +277,31 @@ export class PPTXValidator {
         });
       }
 
-      // TODO: Add more sophisticated validation:
-      // - Parse PPTX structure
-      // - Check for slide masters
-      // - Validate named elements
-      // - Extract placeholders
-      // - Verify required layouts
+      // TODO: Add more sophisticated validation using OOXML structure:
+      //
+      // PPTX STRUCTURE TO VALIDATE:
+      // - ppt/presentation.xml: Main presentation file
+      // - ppt/slideMasters/slideMaster1.xml: Master slide with default styling
+      // - ppt/slideLayouts/slideLayout*.xml: Layout definitions with placeholder positions
+      // - ppt/slides/slide*.xml: Actual slides with content
+      //
+      // PLACEHOLDER VALIDATION:
+      // - Look for <p:ph type="..." idx="..."/> in nvSpPr/nvPr
+      // - type: "ctrTitle", "title", "subTitle", "body", "pic", etc.
+      // - idx: Distinguishes multiple same-type placeholders
+      // - Extract {{PLACEHOLDER}} text from <a:t> elements in txBody
+      //
+      // INHERITANCE CHAIN VALIDATION:
+      // - Layouts should define colors in <a:lstStyle>/<a:defRPr> (not <a:rPr>)
+      // - Use <a:buNone/> in lstStyle to suppress unwanted bullets
+      // - Slides should have empty <a:lstStyle/> to inherit from layout
+      //
+      // REQUIRED CHECKS:
+      // - Parse PPTX structure (it's a ZIP file)
+      // - Verify slide masters exist
+      // - Validate placeholder types and positions
+      // - Extract {{PLACEHOLDER}} tags from text elements
+      // - Verify required layouts are present
 
       return {
         isValid: errors.length === 0,

@@ -27,10 +27,11 @@ Teach is a software project for researching and building course curricula with s
 | Research & information gathering | `/research` | WebSearch + WebFetch sequences |
 | Fact verification | `/fact-check` | Manual source checking |
 | Complex claim analysis | `/claim-investigation` | WebSearch-based verification |
-| PDF generation | `/pdf` | Generic file operations |
-| Word documents | `/word` | Generic file operations |
-| Spreadsheets | `/spreadsheet` | Generic file operations |
-| Presentations | `/presentation` | Generic file operations |
+| PDF generation | `/pdf-generator` | Generic file operations |
+| Word documents | `/docx-generator` | Generic file operations |
+| Spreadsheets | `/xlsx-generator` | Generic file operations |
+| PowerPoint presentations | `/pptx-generator` | Generic file operations |
+| Reveal.js presentations | `/revealjs-generator` | Generic file operations |
 | Dev server management | `/process-manager` | Manual bash commands |
 | GitHub workflows | `/github-agile` | Manual gh commands |
 
@@ -71,10 +72,11 @@ This project has numerous installed skills in `.claude/skills/` to support curri
 - **gentle-teaching** - Educational content design approach
 
 ### Document Generation
-- **pdf/pdf-generator** - Generate PDFs from templates or scratch
-- **word/docx-generator** - Generate Word documents
-- **spreadsheet/xlsx-generator** - Generate Excel spreadsheets
-- **presentation/pptx-generator** - Generate PowerPoint presentations
+- **pdf-generator** - Generate PDFs from templates or scratch
+- **docx-generator** - Generate Word documents
+- **xlsx-generator** - Generate Excel spreadsheets
+- **pptx-generator** - Generate PowerPoint presentations
+- **revealjs-generator** - Generate Reveal.js HTML presentations
 
 ### Project Management
 - **github-agile** - GitHub issues, labels, PR templates

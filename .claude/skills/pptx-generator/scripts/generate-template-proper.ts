@@ -6,12 +6,50 @@
  * Builds a PowerPoint template with actual placeholder shapes that PowerPoint
  * recognizes as editable areas. Uses JSZip to construct the XML directly.
  *
+ * ## OOXML Placeholder Inheritance Model
+ *
+ * PowerPoint uses a hierarchical inheritance chain:
+ *   Theme → Slide Master → Slide Layout → Slide
+ *
+ * KEY PRINCIPLES:
+ *
+ * 1. TEXT CONTENT DOES NOT INHERIT
+ *    - Placeholder text in layouts (e.g., "{{course_title}}") does NOT appear on slides
+ *    - Slides must include their own text content in <p:txBody>
+ *
+ * 2. TEXT FORMATTING CAN INHERIT
+ *    - Define colors, sizes, bullets in layout's <a:lstStyle>/<a:lvl1pPr>/<a:defRPr>
+ *    - Slides use empty <a:lstStyle/> to inherit from layout
+ *    - Run properties use empty <a:rPr lang="en-US"/> to inherit from defRPr
+ *
+ * 3. PLACEHOLDER LINKING
+ *    - Slides link to layouts via <p:ph type="..." idx=".../>
+ *    - Type: "ctrTitle", "title", "subTitle", "body", etc.
+ *    - idx: Distinguishes multiple same-type placeholders (body idx:1, body idx:2)
+ *
+ * 4. BULLET SUPPRESSION
+ *    - Master's <p:bodyStyle> defines bullets for all body placeholders
+ *    - Add <a:buNone/> in layout's <a:lvl1pPr> to suppress bullets
+ *
+ * ## Structure Generated
+ *
+ * - Slide Master: Defines default title/body styling (dark text, bullets)
+ * - Slide Layouts (10): Override master for specific purposes (white text on dark bg, no bullets)
+ * - Sample Slides (10): One per layout with {{placeholder}} text, inheriting formatting
+ *
  * Usage:
  *   deno run --allow-read --allow-write scripts/generate-template-proper.ts <output.pptx>
  */
 
 import { parseArgs } from "jsr:@std/cli@1.0.9/parse-args";
 import JSZip from "npm:jszip@3.10.1";
+import { DOMParser } from "npm:@xmldom/xmldom@0.8.10";
+
+// === XML Namespaces for parsing ===
+const NS = {
+  p: "http://schemas.openxmlformats.org/presentationml/2006/main",
+  a: "http://schemas.openxmlformats.org/drawingml/2006/main",
+};
 
 // === Constants ===
 const EMU_PER_INCH = 914400; // English Metric Units per inch
@@ -196,13 +234,17 @@ interface PlaceholderDef {
   color?: string;
   align?: "l" | "ctr" | "r";
   valign?: "t" | "ctr" | "b";
+  noBullet?: boolean; // Suppress bullet points for this placeholder
 }
 
 function createPlaceholderShape(id: number, ph: PlaceholderDef): string {
   const idxAttr = ph.idx !== undefined ? ` idx="${ph.idx}"` : "";
+  // Define color in lstStyle so slides can inherit it (not in rPr which is run-specific)
   const colorXml = ph.color
     ? `<a:solidFill><a:srgbClr val="${ph.color}"/></a:solidFill>`
     : `<a:solidFill><a:schemeClr val="tx1"/></a:solidFill>`;
+  // Use <a:buNone/> to suppress bullets when noBullet is true
+  const bulletXml = ph.noBullet ? "<a:buNone/>" : "";
 
   return `
       <p:sp>
@@ -224,13 +266,17 @@ function createPlaceholderShape(id: number, ph: PlaceholderDef): string {
         </p:spPr>
         <p:txBody>
           <a:bodyPr anchor="${ph.valign || "ctr"}"/>
-          <a:lstStyle/>
-          <a:p>
-            <a:pPr algn="${ph.align || "l"}"/>
-            <a:r>
-              <a:rPr lang="en-US" sz="${ph.fontSize * 100}"${ph.bold ? ' b="1"' : ""}>
+          <a:lstStyle>
+            <a:lvl1pPr algn="${ph.align || "l"}">
+              ${bulletXml}
+              <a:defRPr sz="${ph.fontSize * 100}"${ph.bold ? ' b="1"' : ""}>
                 ${colorXml}
-              </a:rPr>
+              </a:defRPr>
+            </a:lvl1pPr>
+          </a:lstStyle>
+          <a:p>
+            <a:r>
+              <a:rPr lang="en-US"/>
               <a:t>${ph.text}</a:t>
             </a:r>
           </a:p>
@@ -312,6 +358,177 @@ function createRectShape(id: number, x: number, y: number, w: number, h: number,
           ${lineXml}
         </p:spPr>
       </p:sp>`;
+}
+
+// === Dynamic Placeholder Extraction ===
+
+interface ExtractedPlaceholder {
+  type: string;           // "title", "body", "subTitle", "ctrTitle", etc. (or "textbox" for non-placeholders)
+  idx?: number;           // Optional index for multiple same-type placeholders
+  id: number;             // Shape ID from layout
+  name: string;           // Shape name
+  defaultText?: string;   // Text content from layout (e.g., "{{course_title}}")
+  isTextBox?: boolean;    // True if this is a regular text box, not a placeholder
+}
+
+// Helper to get elements by tag name and namespace
+function getElementsByTagNameNS(parent: Document | Element, ns: string, localName: string): Element[] {
+  const elements = parent.getElementsByTagNameNS(ns, localName);
+  const result: Element[] = [];
+  for (let i = 0; i < elements.length; i++) {
+    const el = elements.item(i);
+    if (el) result.push(el);
+  }
+  return result;
+}
+
+// Extract all text content from a txBody element
+function extractTextFromTxBody(txBody: Element): string {
+  const textParts: string[] = [];
+  const tElements = getElementsByTagNameNS(txBody, NS.a, "t");
+  for (const t of tElements) {
+    if (t.textContent) {
+      textParts.push(t.textContent);
+    }
+  }
+  return textParts.join("");
+}
+
+// Check if text contains placeholder pattern like {{something}}
+function containsPlaceholderPattern(text: string): boolean {
+  return /\{\{[^}]+\}\}/.test(text);
+}
+
+// Extract placeholder definitions from layout XML
+function extractPlaceholdersFromLayoutXml(layoutXml: string): ExtractedPlaceholder[] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(layoutXml, "text/xml");
+  const placeholders: ExtractedPlaceholder[] = [];
+
+  // Find all shape elements
+  const shapes = getElementsByTagNameNS(doc, NS.p, "sp");
+
+  for (const shape of shapes) {
+    // Look for nvSpPr > nvPr > ph (placeholder definition)
+    const nvSpPrList = getElementsByTagNameNS(shape, NS.p, "nvSpPr");
+    if (nvSpPrList.length === 0) continue;
+    const nvSpPr = nvSpPrList[0];
+
+    // Get shape ID and name from cNvPr
+    const cNvPrList = getElementsByTagNameNS(nvSpPr, NS.p, "cNvPr");
+    const cNvPr = cNvPrList[0];
+    const id = cNvPr ? parseInt(cNvPr.getAttribute("id") || "0", 10) : 0;
+    const name = cNvPr ? cNvPr.getAttribute("name") || "" : "";
+
+    // Extract text content from txBody
+    let defaultText: string | undefined;
+    const txBodyList = getElementsByTagNameNS(shape, NS.p, "txBody");
+    if (txBodyList.length > 0) {
+      defaultText = extractTextFromTxBody(txBodyList[0]);
+    }
+
+    const nvPrList = getElementsByTagNameNS(nvSpPr, NS.p, "nvPr");
+    if (nvPrList.length === 0) continue;
+    const nvPr = nvPrList[0];
+
+    const phList = getElementsByTagNameNS(nvPr, NS.p, "ph");
+
+    if (phList.length > 0) {
+      // This is a proper placeholder shape
+      const ph = phList[0];
+      const type = ph.getAttribute("type") || "body";
+      const idxAttr = ph.getAttribute("idx");
+      const idx = idxAttr ? parseInt(idxAttr, 10) : undefined;
+
+      placeholders.push({
+        type,
+        idx,
+        id,
+        name,
+        defaultText: defaultText || undefined,
+        isTextBox: false,
+      });
+    } else if (defaultText && containsPlaceholderPattern(defaultText)) {
+      // This is a text box with {{placeholder}} text - include it too
+      placeholders.push({
+        type: "textbox",
+        id,
+        name,
+        defaultText,
+        isTextBox: true,
+      });
+    }
+    // Skip shapes without placeholders and without {{...}} text (like labels, decorative elements)
+  }
+
+  return placeholders;
+}
+
+// Create a slide shape that references a layout placeholder
+// Key insight: Text CONTENT must be in the slide (doesn't inherit from layout)
+// Text FORMATTING inherits from layout's lstStyle when slide has empty lstStyle
+function createSlideShape(id: number, ph: ExtractedPlaceholder): string {
+  // Skip text boxes - they should now be placeholders in the layout
+  if (ph.isTextBox) {
+    return ""; // Text boxes don't get slide shapes - they need to be placeholders in layout
+  }
+
+  const idxAttr = ph.idx !== undefined ? ` idx="${ph.idx}"` : "";
+
+  // Include the placeholder text from layout (e.g., "{{course_title}}")
+  // Use empty lstStyle to inherit formatting from layout's lstStyle
+  // Use empty rPr to inherit character formatting from lstStyle's defRPr
+  const textContent = ph.defaultText || "";
+
+  return `
+      <p:sp>
+        <p:nvSpPr>
+          <p:cNvPr id="${id}" name="${ph.type} ${id}"/>
+          <p:cNvSpPr>
+            <a:spLocks noGrp="1"/>
+          </p:cNvSpPr>
+          <p:nvPr>
+            <p:ph type="${ph.type}"${idxAttr}/>
+          </p:nvPr>
+        </p:nvSpPr>
+        <p:spPr/>
+        <p:txBody>
+          <a:bodyPr/>
+          <a:lstStyle/>
+          <a:p>
+            <a:r>
+              <a:rPr lang="en-US"/>
+              <a:t>${textContent}</a:t>
+            </a:r>
+          </a:p>
+        </p:txBody>
+      </p:sp>`;
+}
+
+// Generate slide XML from a layout by extracting and referencing its placeholders
+function createSlideFromLayout(layoutXml: string): string {
+  const placeholders = extractPlaceholdersFromLayoutXml(layoutXml);
+
+  const shapesXml = placeholders
+    .map((ph, index) => createSlideShape(index + 2, ph)) // IDs start at 2 (1 is grpSp)
+    .filter(xml => xml.trim() !== "") // Filter out empty shapes (text boxes)
+    .join("\n");
+
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld>
+    <p:spTree>
+      <p:nvGrpSpPr>
+        <p:cNvPr id="1" name=""/>
+        <p:cNvGrpSpPr/>
+        <p:nvPr/>
+      </p:nvGrpSpPr>
+      <p:grpSpPr/>
+${shapesXml}
+    </p:spTree>
+  </p:cSld>
+  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
+</p:sld>`;
 }
 
 // === Slide Master ===
@@ -476,23 +693,30 @@ function createTitleSlideLayout(): string {
       type: "ctrTitle",
       x: 0.5, y: 1.5, w: 9, h: 1.2,
       text: "{{course_title}}",
-      fontSize: 44, bold: true, color: COLORS.white, align: "ctr", valign: "ctr"
+      fontSize: 44, bold: true, color: COLORS.white, align: "ctr", valign: "ctr",
+      noBullet: true
     }),
     createPlaceholderShape(3, {
       type: "subTitle", idx: 1,
       x: 0.5, y: 2.8, w: 9, h: 0.6,
       text: "{{course_subtitle}}",
-      fontSize: 20, color: COLORS.lightGray, align: "ctr", valign: "ctr"
+      fontSize: 20, color: COLORS.lightGray, align: "ctr", valign: "ctr",
+      noBullet: true
     }),
-    createTextShape(4, {
+    // Use body placeholders for instructor and date so they appear on slides
+    createPlaceholderShape(4, {
+      type: "body", idx: 2,
       x: 0.5, y: 4.2, w: 4, h: 0.4,
       text: "Instructor: {{instructor_name}}",
-      fontSize: 14, color: COLORS.lightGray, align: "l", valign: "ctr"
+      fontSize: 14, color: COLORS.lightGray, align: "l", valign: "ctr",
+      noBullet: true
     }),
-    createTextShape(5, {
+    createPlaceholderShape(5, {
+      type: "body", idx: 3,
       x: 5.5, y: 4.2, w: 4, h: 0.4,
       text: "{{course_date}}",
-      fontSize: 14, color: COLORS.lightGray, align: "r", valign: "ctr"
+      fontSize: 14, color: COLORS.lightGray, align: "r", valign: "ctr",
+      noBullet: true
     }),
   ];
 
@@ -525,13 +749,15 @@ function createSectionHeaderLayout(): string {
       type: "title",
       x: 0.5, y: 2.0, w: 9, h: 1.0,
       text: "{{section_title}}",
-      fontSize: 40, bold: true, color: COLORS.white, align: "ctr", valign: "ctr"
+      fontSize: 40, bold: true, color: COLORS.white, align: "ctr", valign: "ctr",
+      noBullet: true
     }),
     createPlaceholderShape(3, {
       type: "body", idx: 1,
       x: 0.5, y: 3.2, w: 9, h: 0.8,
       text: "{{section_description}}",
-      fontSize: 18, color: COLORS.lightGray, align: "ctr", valign: "t"
+      fontSize: 18, color: COLORS.lightGray, align: "ctr", valign: "t",
+      noBullet: true
     }),
   ];
 
@@ -564,13 +790,15 @@ function createContentLayout(): string {
       type: "title",
       x: 0.5, y: 0.3, w: 9, h: 0.8,
       text: "{{slide_title}}",
-      fontSize: 28, bold: true, color: COLORS.primaryBlue, align: "l", valign: "b"
+      fontSize: 28, bold: true, color: COLORS.primaryBlue, align: "l", valign: "b",
+      noBullet: true
     }),
     createPlaceholderShape(3, {
       type: "body", idx: 1,
       x: 0.5, y: 1.3, w: 9, h: 4.0,
       text: "{{main_content}}",
       fontSize: 18, color: COLORS.textDark, align: "l", valign: "t"
+      // Keep bullets for main content
     }),
   ];
 
@@ -599,19 +827,22 @@ function createTwoColumnLayout(): string {
       type: "title",
       x: 0.5, y: 0.3, w: 9, h: 0.8,
       text: "{{slide_title}}",
-      fontSize: 28, bold: true, color: COLORS.primaryBlue, align: "l", valign: "b"
+      fontSize: 28, bold: true, color: COLORS.primaryBlue, align: "l", valign: "b",
+      noBullet: true
     }),
     createPlaceholderShape(3, {
       type: "body", idx: 1,
       x: 0.5, y: 1.3, w: colWidth, h: 4.0,
       text: "{{left_column}}",
       fontSize: 16, color: COLORS.textDark, align: "l", valign: "t"
+      // Keep bullets for column content
     }),
     createPlaceholderShape(4, {
       type: "body", idx: 2,
       x: 5.25, y: 1.3, w: colWidth, h: 4.0,
       text: "{{right_column}}",
       fontSize: 16, color: COLORS.textDark, align: "l", valign: "t"
+      // Keep bullets for column content
     }),
   ];
 
@@ -639,13 +870,17 @@ function createCompetencyLayout(): string {
       type: "title",
       x: 0.5, y: 0.3, w: 9, h: 0.6,
       text: "{{competency_title}}",
-      fontSize: 24, bold: true, color: COLORS.primaryBlue, align: "l", valign: "b"
+      fontSize: 24, bold: true, color: COLORS.primaryBlue, align: "l", valign: "b",
+      noBullet: true
     }),
     createRectShape(3, 0.5, 1.0, 9, 1.2, COLORS.lightGray, COLORS.accentTeal),
-    createTextShape(4, {
+    // Use body placeholder so it appears on slides
+    createPlaceholderShape(4, {
+      type: "body", idx: 1,
       x: 0.7, y: 1.1, w: 8.6, h: 1.0,
       text: "{{competency_description}}",
-      fontSize: 16, color: COLORS.textDark, align: "l", valign: "ctr"
+      fontSize: 16, color: COLORS.textDark, align: "l", valign: "ctr",
+      noBullet: true
     }),
     createTextShape(5, {
       x: 0.5, y: 2.4, w: 9, h: 0.5,
@@ -653,10 +888,11 @@ function createCompetencyLayout(): string {
       fontSize: 18, bold: true, color: COLORS.primaryBlue, align: "l", valign: "b"
     }),
     createPlaceholderShape(6, {
-      type: "body", idx: 1,
+      type: "body", idx: 2,
       x: 0.5, y: 2.9, w: 9, h: 2.4,
       text: "{{learning_objectives}}",
       fontSize: 16, color: COLORS.textDark, align: "l", valign: "t"
+      // Keep bullets for objectives list
     }),
   ];
 
@@ -689,7 +925,8 @@ function createActivityLayout(): string {
       type: "title",
       x: 2.0, y: 0.3, w: 7.5, h: 0.6,
       text: "{{activity_title}}",
-      fontSize: 24, bold: true, color: COLORS.primaryBlue, align: "l", valign: "b"
+      fontSize: 24, bold: true, color: COLORS.primaryBlue, align: "l", valign: "b",
+      noBullet: true
     }),
     createTextShape(4, {
       x: 0.5, y: 1.0, w: 2.0, h: 0.4,
@@ -701,22 +938,29 @@ function createActivityLayout(): string {
       x: 0.5, y: 1.4, w: 6.5, h: 2.8,
       text: "{{activity_instructions}}",
       fontSize: 16, color: COLORS.textDark, align: "l", valign: "t"
+      // Keep bullets for instructions list
     }),
     createRectShape(6, 7.5, 1.0, 2.0, 0.8, "E8F4F3", COLORS.accentTeal),
-    createTextShape(7, {
+    // Use placeholder so time estimate appears on slides
+    createPlaceholderShape(7, {
+      type: "body", idx: 2,
       x: 7.5, y: 1.0, w: 2.0, h: 0.8,
       text: "{{time_estimate}} min",
-      fontSize: 18, bold: true, color: COLORS.primaryBlue, align: "ctr", valign: "ctr"
+      fontSize: 18, bold: true, color: COLORS.primaryBlue, align: "ctr", valign: "ctr",
+      noBullet: true
     }),
     createTextShape(8, {
       x: 0.5, y: 4.3, w: 2.5, h: 0.4,
       text: "Materials Needed:",
       fontSize: 14, bold: true, color: COLORS.textMedium, align: "l", valign: "b"
     }),
-    createTextShape(9, {
+    // Use placeholder so materials appears on slides
+    createPlaceholderShape(9, {
+      type: "body", idx: 3,
       x: 3.0, y: 4.3, w: 6.5, h: 0.8,
       text: "{{materials_needed}}",
-      fontSize: 14, color: COLORS.textDark, align: "l", valign: "t"
+      fontSize: 14, color: COLORS.textDark, align: "l", valign: "t",
+      noBullet: true
     }),
   ];
 
@@ -744,13 +988,17 @@ function createDiscussionLayout(): string {
       type: "title",
       x: 0.5, y: 0.3, w: 9, h: 0.6,
       text: "Discussion",
-      fontSize: 24, bold: true, color: COLORS.primaryBlue, align: "l", valign: "b"
+      fontSize: 24, bold: true, color: COLORS.primaryBlue, align: "l", valign: "b",
+      noBullet: true
     }),
     createRectShape(3, 0.5, 1.0, 9, 1.2, COLORS.lightGray),
-    createTextShape(4, {
+    // Use placeholder so prompt appears on slides
+    createPlaceholderShape(4, {
+      type: "body", idx: 1,
       x: 0.7, y: 1.1, w: 8.6, h: 1.0,
       text: "{{discussion_prompt}}",
-      fontSize: 20, color: COLORS.textDark, align: "l", valign: "ctr"
+      fontSize: 20, color: COLORS.textDark, align: "l", valign: "ctr",
+      noBullet: true
     }),
     createTextShape(5, {
       x: 0.5, y: 2.4, w: 9, h: 0.5,
@@ -758,15 +1006,19 @@ function createDiscussionLayout(): string {
       fontSize: 16, bold: true, color: COLORS.accentTeal, align: "l", valign: "b"
     }),
     createPlaceholderShape(6, {
-      type: "body", idx: 1,
+      type: "body", idx: 2,
       x: 0.5, y: 2.9, w: 9, h: 1.5,
       text: "{{discussion_points}}",
       fontSize: 16, color: COLORS.textDark, align: "l", valign: "t"
+      // Keep bullets for discussion points list
     }),
-    createTextShape(7, {
+    // Use placeholder so teaching notes appears on slides
+    createPlaceholderShape(7, {
+      type: "body", idx: 3,
       x: 0.5, y: 4.6, w: 9, h: 0.7,
       text: "Teaching Notes: {{teaching_notes}}",
-      fontSize: 12, italic: true, color: COLORS.textMedium, align: "l", valign: "t"
+      fontSize: 12, color: COLORS.textMedium, align: "l", valign: "t",
+      noBullet: true
     }),
   ];
 
@@ -801,13 +1053,16 @@ function createQuoteLayout(): string {
       type: "body", idx: 1,
       x: 1.0, y: 1.5, w: 8, h: 2.5,
       text: "{{quote_text}}",
-      fontSize: 32, italic: true, color: COLORS.textDark, align: "ctr", valign: "ctr"
+      fontSize: 32, color: COLORS.textDark, align: "ctr", valign: "ctr",
+      noBullet: true
     }),
-    // Attribution
-    createTextShape(4, {
+    // Attribution - use placeholder so it appears on slides
+    createPlaceholderShape(4, {
+      type: "body", idx: 2,
       x: 1.0, y: 4.2, w: 8, h: 0.5,
       text: "— {{attribution}}",
-      fontSize: 18, italic: true, color: COLORS.textMedium, align: "r", valign: "t"
+      fontSize: 18, color: COLORS.textMedium, align: "r", valign: "t",
+      noBullet: true
     }),
   ];
 
@@ -835,11 +1090,13 @@ function createFullImageLayout(): string {
   const shapes = [
     // Caption bar background (semi-transparent dark)
     createRectShape(2, 0, 4.625, 10, 1, "1B365D"),
-    // Caption text
-    createTextShape(3, {
+    // Caption text - use placeholder so it appears on slides
+    createPlaceholderShape(3, {
+      type: "body", idx: 2,
       x: 0.5, y: 4.725, w: 9, h: 0.8,
       text: "{{image_caption}}",
-      fontSize: 20, color: COLORS.white, align: "ctr", valign: "ctr"
+      fontSize: 20, color: COLORS.white, align: "ctr", valign: "ctr",
+      noBullet: true
     }),
   ];
 
@@ -885,7 +1142,8 @@ function createBigTextLayout(): string {
       type: "body", idx: 1,
       x: 0.5, y: 1.5, w: 9, h: 2.5,
       text: "{{big_text_content}}",
-      fontSize: 54, bold: true, color: COLORS.primaryBlue, align: "ctr", valign: "ctr"
+      fontSize: 54, bold: true, color: COLORS.primaryBlue, align: "ctr", valign: "ctr",
+      noBullet: true
     }),
   ];
 
@@ -913,22 +1171,8 @@ const layoutRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 </Relationships>`;
 
 // === Sample Slides ===
-function createSlide(layoutNum: number): string {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
-  <p:cSld>
-    <p:spTree>
-      <p:nvGrpSpPr>
-        <p:cNvPr id="1" name=""/>
-        <p:cNvGrpSpPr/>
-        <p:nvPr/>
-      </p:nvGrpSpPr>
-      <p:grpSpPr/>
-    </p:spTree>
-  </p:cSld>
-  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
-</p:sld>`;
-}
+// Note: createSlide is replaced by createSlideFromLayout (defined above)
+// which dynamically extracts placeholders from layout XML
 
 function createSlideRels(layoutNum: number): string {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -981,13 +1225,14 @@ async function generateTemplate(outputPath: string, verbose: boolean): Promise<v
     zip.file(`ppt/slideLayouts/_rels/slideLayout${i + 1}.xml.rels`, layoutRelsXml);
   });
 
-  if (verbose) console.error("Creating sample slides...");
+  if (verbose) console.error("Creating sample slides with dynamic placeholder extraction...");
 
-  // Sample Slides (one per layout)
-  for (let i = 1; i <= 10; i++) {
-    zip.file(`ppt/slides/slide${i}.xml`, createSlide(i));
-    zip.file(`ppt/slides/_rels/slide${i}.xml.rels`, createSlideRels(i));
-  }
+  // Sample Slides (one per layout) - dynamically extract placeholders from each layout
+  layouts.forEach((layoutXml, i) => {
+    const slideXml = createSlideFromLayout(layoutXml);
+    zip.file(`ppt/slides/slide${i + 1}.xml`, slideXml);
+    zip.file(`ppt/slides/_rels/slide${i + 1}.xml.rels`, createSlideRels(i + 1));
+  });
 
   if (verbose) console.error("Writing output file...");
 
