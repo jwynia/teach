@@ -6,6 +6,13 @@ export * from "./types.js";
 // Services
 export { pdfService, type PdfService } from "./pdf.service.js";
 export { docxService, type DocxService } from "./docx.service.js";
+export {
+  pptxService,
+  type PptxService,
+  type SlideData,
+  type SlideType,
+  type PptxGenerationOptions,
+} from "./pptx.service.js";
 
 // Spec Builders
 export {

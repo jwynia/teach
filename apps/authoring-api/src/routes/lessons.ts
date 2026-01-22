@@ -7,6 +7,11 @@ import { generateText } from "ai";
 import { query, queryOne, execute } from "../db/client.js";
 import { getModelFromEnv } from "../mastra/providers.js";
 import { randomUUID } from "crypto";
+import {
+  pptxService,
+  type SlideData,
+  type SlideType,
+} from "../services/documents/index.js";
 
 const lessons = new Hono();
 
@@ -596,6 +601,84 @@ lessons.get("/:id/preview/revealjs", async (c) => {
   const html = generateLessonRevealJS(slideContent, row.title);
   c.header("Content-Type", "text/html");
   return c.body(html);
+});
+
+// GET /api/lessons/:id/export/pptx - Export lesson slides as PowerPoint presentation
+lessons.get("/:id/export/pptx", async (c) => {
+  const id = c.req.param("id");
+
+  const row = await queryOne<LessonRow>("SELECT * FROM lessons WHERE id = ?", [id]);
+  if (!row) {
+    return c.json({ error: "Lesson not found" }, 404);
+  }
+
+  const slideContent = row.slide_content || "";
+  if (!slideContent.trim()) {
+    return c.json({ error: "No slides to export. Generate slides first." }, 400);
+  }
+
+  // Parse slide_content (markdown with --- separators) into SlideData
+  const slides: SlideData[] = [];
+  const slideParts = slideContent.split(/\n---\s*\n/);
+
+  for (const part of slideParts) {
+    if (!part.trim()) continue;
+
+    const annotations = parseSlideAnnotations(part);
+    const content: string[] = [];
+
+    // Extract bullet points from content
+    const lines = annotations.content.split("\n");
+    let slideTitle = row.title;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("## ") || trimmed.startsWith("### ")) {
+        slideTitle = trimmed.replace(/^##+\s*/, "");
+      } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+        content.push(trimmed.substring(2));
+      } else if (trimmed.startsWith("**") && trimmed.includes(":**")) {
+        // Definition format
+        content.push(trimmed);
+      } else if (trimmed && !trimmed.startsWith("<!--") && !trimmed.startsWith("<div")) {
+        content.push(trimmed);
+      }
+    }
+
+    // Map annotation type to SlideType
+    const validTypes = ["title", "assertion", "definition", "process", "comparison", "quote", "question", "example", "summary"];
+    const slideType: SlideType = validTypes.includes(annotations.type)
+      ? (annotations.type as SlideType)
+      : "default";
+
+    slides.push({
+      title: slideTitle,
+      content,
+      notes: annotations.notes || undefined,
+      type: slideType,
+    });
+  }
+
+  if (slides.length === 0) {
+    return c.json({ error: "No valid slides found in content" }, 400);
+  }
+
+  try {
+    const result = await pptxService.generateFromSlides(slides, {
+      title: row.title,
+    });
+
+    c.header("Content-Disposition", `attachment; filename="${result.filename}"`);
+    c.header("Content-Type", result.contentType);
+
+    return c.body(new Uint8Array(result.buffer));
+  } catch (error) {
+    console.error("Lesson PPTX export error:", error);
+    return c.json({
+      error: "Failed to generate PPTX",
+      details: error instanceof Error ? error.message : String(error),
+    }, 500);
+  }
 });
 
 export { lessons };

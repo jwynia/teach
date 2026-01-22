@@ -5,10 +5,6 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { query, queryOne, execute, transaction } from "../db/client.js";
 import { randomUUID } from "crypto";
-import { readFile } from "fs/promises";
-import { join } from "path";
-import JSZip from "jszip";
-import { DOMParser, XMLSerializer } from "@xmldom/xmldom";
 import {
   mapThemeRow,
   generateThemeCSS,
@@ -16,6 +12,10 @@ import {
   type PresentationTheme,
   type SectionColors,
 } from "../services/themes/index.js";
+import {
+  pptxService,
+  type SlideData,
+} from "../services/documents/index.js";
 
 const courses = new Hono();
 
@@ -1202,282 +1202,6 @@ function escapeHtmlForAttr(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
-// ============================================================================
-// PPTX Export Support
-// ============================================================================
-
-// XML Namespaces for PPTX
-const PPTX_NS = {
-  a: "http://schemas.openxmlformats.org/drawingml/2006/main",
-  p: "http://schemas.openxmlformats.org/presentationml/2006/main",
-  r: "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
-  rel: "http://schemas.openxmlformats.org/package/2006/relationships",
-};
-
-function escapeXmlText(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-// Generate notes master XML (template for all notes pages)
-function generateNotesMasterXml(): string {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:notesMaster xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
-  <p:cSld>
-    <p:spTree>
-      <p:nvGrpSpPr>
-        <p:cNvPr id="1" name=""/>
-        <p:cNvGrpSpPr/>
-        <p:nvPr/>
-      </p:nvGrpSpPr>
-      <p:grpSpPr>
-        <a:xfrm>
-          <a:off x="0" y="0"/>
-          <a:ext cx="0" cy="0"/>
-          <a:chOff x="0" y="0"/>
-          <a:chExt cx="0" cy="0"/>
-        </a:xfrm>
-      </p:grpSpPr>
-      <p:sp>
-        <p:nvSpPr>
-          <p:cNvPr id="2" name="Slide Image Placeholder"/>
-          <p:cNvSpPr><a:spLocks noGrp="1" noRot="1" noChangeAspect="1"/></p:cNvSpPr>
-          <p:nvPr><p:ph type="sldImg"/></p:nvPr>
-        </p:nvSpPr>
-        <p:spPr>
-          <a:xfrm>
-            <a:off x="381000" y="685800"/>
-            <a:ext cx="6096000" cy="3429000"/>
-          </a:xfrm>
-          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
-          <a:noFill/>
-          <a:ln w="12700"><a:solidFill><a:schemeClr val="tx1"/></a:solidFill></a:ln>
-        </p:spPr>
-      </p:sp>
-      <p:sp>
-        <p:nvSpPr>
-          <p:cNvPr id="3" name="Notes Placeholder"/>
-          <p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>
-          <p:nvPr><p:ph type="body" idx="1"/></p:nvPr>
-        </p:nvSpPr>
-        <p:spPr>
-          <a:xfrm>
-            <a:off x="381000" y="4343400"/>
-            <a:ext cx="6096000" cy="4114800"/>
-          </a:xfrm>
-          <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
-        </p:spPr>
-        <p:txBody>
-          <a:bodyPr vert="horz" lIns="91440" tIns="45720" rIns="91440" bIns="45720" rtlCol="0"/>
-          <a:lstStyle/>
-          <a:p><a:pPr lvl="0"/><a:r><a:rPr lang="en-US"/><a:t></a:t></a:r></a:p>
-        </p:txBody>
-      </p:sp>
-    </p:spTree>
-  </p:cSld>
-  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
-</p:notesMaster>`;
-}
-
-function generateNotesMasterRelsXml(): string {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="../theme/theme1.xml"/>
-</Relationships>`;
-}
-
-function generateNotesSlideXml(notesText: string): string {
-  const paragraphs = notesText.split(/\n\n+/).map(p => p.trim()).filter(p => p);
-  const paragraphsXml = paragraphs.length > 0
-    ? paragraphs.map(p =>
-        `<a:p><a:r><a:rPr lang="en-US" dirty="0"/><a:t>${escapeXmlText(p.replace(/\n/g, " "))}</a:t></a:r></a:p>`
-      ).join("")
-    : `<a:p><a:r><a:rPr lang="en-US" dirty="0"/><a:t>${escapeXmlText(notesText)}</a:t></a:r></a:p>`;
-
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<p:notes xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
-  <p:cSld>
-    <p:spTree>
-      <p:nvGrpSpPr>
-        <p:cNvPr id="1" name=""/>
-        <p:cNvGrpSpPr/>
-        <p:nvPr/>
-      </p:nvGrpSpPr>
-      <p:grpSpPr>
-        <a:xfrm>
-          <a:off x="0" y="0"/>
-          <a:ext cx="0" cy="0"/>
-          <a:chOff x="0" y="0"/>
-          <a:chExt cx="0" cy="0"/>
-        </a:xfrm>
-      </p:grpSpPr>
-      <p:sp>
-        <p:nvSpPr>
-          <p:cNvPr id="2" name="Slide Image Placeholder"/>
-          <p:cNvSpPr><a:spLocks noGrp="1" noRot="1" noChangeAspect="1"/></p:cNvSpPr>
-          <p:nvPr><p:ph type="sldImg"/></p:nvPr>
-        </p:nvSpPr>
-        <p:spPr/>
-      </p:sp>
-      <p:sp>
-        <p:nvSpPr>
-          <p:cNvPr id="3" name="Notes Placeholder"/>
-          <p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>
-          <p:nvPr><p:ph type="body" idx="1"/></p:nvPr>
-        </p:nvSpPr>
-        <p:spPr/>
-        <p:txBody>
-          <a:bodyPr/>
-          <a:lstStyle/>
-          ${paragraphsXml}
-        </p:txBody>
-      </p:sp>
-    </p:spTree>
-  </p:cSld>
-  <p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr>
-</p:notes>`;
-}
-
-function generateNotesSlideRelsXml(slideNumber: number): string {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster" Target="../notesMasters/notesMaster1.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="../slides/slide${slideNumber}.xml"/>
-</Relationships>`;
-}
-
-interface SlideData {
-  title: string;
-  content: string[];
-  notes?: string;
-}
-
-async function addNotesToPptx(
-  zip: JSZip,
-  slideNotes: Map<number, string>,
-  slideCount: number
-): Promise<void> {
-  if (slideNotes.size === 0) return;
-
-  // Create notes master
-  zip.file("ppt/notesMasters/notesMaster1.xml", generateNotesMasterXml());
-  zip.file("ppt/notesMasters/_rels/notesMaster1.xml.rels", generateNotesMasterRelsXml());
-
-  // Create notes slides for each slide that has notes
-  for (let i = 1; i <= slideCount; i++) {
-    const notes = slideNotes.get(i);
-    if (notes) {
-      zip.file(`ppt/notesSlides/notesSlide${i}.xml`, generateNotesSlideXml(notes));
-      zip.file(`ppt/notesSlides/_rels/notesSlide${i}.xml.rels`, generateNotesSlideRelsXml(i));
-    }
-  }
-
-  // Update slide relationships to link to notes slides
-  for (let i = 1; i <= slideCount; i++) {
-    if (slideNotes.has(i)) {
-      const relsPath = `ppt/slides/_rels/slide${i}.xml.rels`;
-      const relsFile = zip.file(relsPath);
-
-      if (relsFile) {
-        let relsXml = await relsFile.async("string");
-
-        if (!relsXml.includes("relationships/notesSlide")) {
-          const rIdMatches = relsXml.match(/Id="rId(\d+)"/g) || [];
-          let maxRId = 0;
-          for (const match of rIdMatches) {
-            const num = parseInt(match.match(/rId(\d+)/)?.[1] || "0", 10);
-            if (num > maxRId) maxRId = num;
-          }
-          const newRId = `rId${maxRId + 1}`;
-          const newRel = `<Relationship Id="${newRId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide" Target="../notesSlides/notesSlide${i}.xml"/>`;
-          relsXml = relsXml.replace("</Relationships>", `${newRel}\n</Relationships>`);
-          zip.file(relsPath, relsXml);
-        }
-      }
-    }
-  }
-
-  // Update presentation.xml.rels to include notesMaster
-  const presRelsPath = "ppt/_rels/presentation.xml.rels";
-  const presRelsFile = zip.file(presRelsPath);
-  if (presRelsFile) {
-    let presRelsXml = await presRelsFile.async("string");
-
-    if (!presRelsXml.includes("relationships/notesMaster")) {
-      const rIdMatches = presRelsXml.match(/Id="rId(\d+)"/g) || [];
-      let maxRId = 0;
-      for (const match of rIdMatches) {
-        const num = parseInt(match.match(/rId(\d+)/)?.[1] || "0", 10);
-        if (num > maxRId) maxRId = num;
-      }
-      const newRId = `rId${maxRId + 1}`;
-      const newRel = `<Relationship Id="${newRId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesMaster" Target="notesMasters/notesMaster1.xml"/>`;
-      presRelsXml = presRelsXml.replace("</Relationships>", `${newRel}\n</Relationships>`);
-      zip.file(presRelsPath, presRelsXml);
-    }
-  }
-
-  // Update [Content_Types].xml to include notes types
-  const ctPath = "[Content_Types].xml";
-  const ctFile = zip.file(ctPath);
-  if (ctFile) {
-    let ctXml = await ctFile.async("string");
-
-    if (!ctXml.includes("notesMaster+xml")) {
-      const notesMasterOverride = `<Override PartName="/ppt/notesMasters/notesMaster1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesMaster+xml"/>`;
-      ctXml = ctXml.replace("</Types>", `${notesMasterOverride}\n</Types>`);
-    }
-
-    for (let i = 1; i <= slideCount; i++) {
-      if (slideNotes.has(i)) {
-        const partName = `/ppt/notesSlides/notesSlide${i}.xml`;
-        if (!ctXml.includes(partName)) {
-          const notesSlideOverride = `<Override PartName="${partName}" ContentType="application/vnd.openxmlformats-officedocument.presentationml.notesSlide+xml"/>`;
-          ctXml = ctXml.replace("</Types>", `${notesSlideOverride}\n</Types>`);
-        }
-      }
-    }
-
-    zip.file(ctPath, ctXml);
-  }
-}
-
-function replaceTextInSlideXml(
-  xmlContent: string,
-  replacements: { tag: string; value: string }[]
-): string {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xmlContent, "text/xml");
-  const textElements = doc.getElementsByTagNameNS(PPTX_NS.a, "t");
-
-  for (let i = 0; i < textElements.length; i++) {
-    const textEl = textElements.item(i);
-    if (!textEl) continue;
-    let text = textEl.textContent || "";
-
-    for (const replacement of replacements) {
-      const tag = replacement.tag.startsWith("{{")
-        ? replacement.tag
-        : `{{${replacement.tag}}}`;
-
-      if (text.includes(tag)) {
-        text = text.replace(new RegExp(tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g"), replacement.value);
-      }
-    }
-
-    if (textEl.textContent !== text) {
-      textEl.textContent = text;
-    }
-  }
-
-  const serializer = new XMLSerializer();
-  return serializer.serializeToString(doc);
-}
-
 // GET /api/courses/:id/export/pptx - Export course as PowerPoint presentation
 courses.get("/:id/export/pptx", async (c) => {
   const id = c.req.param("id");
@@ -1498,9 +1222,8 @@ courses.get("/:id/export/pptx", async (c) => {
     [id]
   );
 
-  // Collect all slides and notes
+  // Collect all slides
   const slides: SlideData[] = [];
-  const slideNotes = new Map<number, string>();
 
   // Title slide
   slides.push({
@@ -1517,7 +1240,7 @@ courses.get("/:id/export/pptx", async (c) => {
   if (competencies.length > 0) {
     slides.push({
       title: "Learning Objectives",
-      content: competencies.map((c) => c.title),
+      content: competencies.map((comp) => comp.title),
     });
   }
 
@@ -1564,12 +1287,11 @@ courses.get("/:id/export/pptx", async (c) => {
             }
           }
 
-          const slideIndex = slides.length + 1;
-          slides.push({ title: slideTitle, content, notes: annotations.notes || undefined });
-
-          if (annotations.notes) {
-            slideNotes.set(slideIndex, annotations.notes);
-          }
+          slides.push({
+            title: slideTitle,
+            content,
+            notes: annotations.notes || undefined,
+          });
         }
       } else {
         // Fallback: create a slide from lesson title/description
@@ -1588,189 +1310,15 @@ courses.get("/:id/export/pptx", async (c) => {
   });
 
   try {
-    // Load the template
-    const templatePath = join(process.cwd(), "storage/starter-templates/pptx/professional-course-template-v1.0.pptx");
-    let templateData: Buffer;
-    try {
-      templateData = await readFile(templatePath);
-    } catch {
-      // Create minimal PPTX if template not found
-      return c.json({ error: "PPTX template not found. Please upload a template first." }, 500);
-    }
-
-    const zip = await JSZip.loadAsync(templateData);
-
-    // Get existing slides from template
-    const slideFiles: string[] = [];
-    zip.forEach((relativePath: string) => {
-      const match = relativePath.match(/^ppt\/slides\/slide(\d+)\.xml$/);
-      if (match) {
-        slideFiles.push(relativePath);
-      }
-    });
-    slideFiles.sort((a, b) => {
-      const numA = parseInt(a.match(/slide(\d+)\.xml$/)?.[1] || "0", 10);
-      const numB = parseInt(b.match(/slide(\d+)\.xml$/)?.[1] || "0", 10);
-      return numA - numB;
+    const result = await pptxService.generateFromSlides(slides, {
+      title: courseRow.title,
+      subtitle: courseRow.description || undefined,
     });
 
-    // Get a template slide to duplicate (use slide 2 as content template if exists)
-    const templateSlideFile = slideFiles.length > 1 ? slideFiles[1] : slideFiles[0];
-    const templateSlideContent = await zip.file(templateSlideFile)?.async("string");
+    c.header("Content-Disposition", `attachment; filename="${result.filename}"`);
+    c.header("Content-Type", result.contentType);
 
-    if (!templateSlideContent) {
-      return c.json({ error: "Could not read template slides" }, 500);
-    }
-
-    // Remove existing slides (except first one as title)
-    for (const slidePath of slideFiles.slice(1)) {
-      zip.remove(slidePath);
-      const relsPath = slidePath.replace("slides/", "slides/_rels/") + ".rels";
-      const relsFile = zip.file(relsPath);
-      if (relsFile) zip.remove(relsPath);
-    }
-
-    // Get first slide and update with course title
-    const firstSlideFile = zip.file(slideFiles[0]);
-    if (firstSlideFile) {
-      let firstSlideContent = await firstSlideFile.async("string");
-      firstSlideContent = replaceTextInSlideXml(firstSlideContent, [
-        { tag: "{{TITLE}}", value: courseRow.title },
-        { tag: "{{SUBTITLE}}", value: courseRow.description || "" },
-        { tag: "{{DATE}}", value: new Date().toLocaleDateString() },
-      ]);
-      zip.file(slideFiles[0], firstSlideContent);
-    }
-
-    // Create new slides for our content (starting from slide 2)
-    for (let i = 1; i < slides.length; i++) {
-      const slide = slides[i];
-      const slideNumber = i + 1;
-
-      // Create slide content from template
-      let slideXml = templateSlideContent;
-
-      // Replace placeholders
-      const bulletContent = slide.content.map((c) => `• ${c}`).join("\n");
-      slideXml = replaceTextInSlideXml(slideXml, [
-        { tag: "{{TITLE}}", value: slide.title },
-        { tag: "{{CONTENT}}", value: bulletContent },
-        { tag: "{{SUBTITLE}}", value: "" },
-      ]);
-
-      zip.file(`ppt/slides/slide${slideNumber}.xml`, slideXml);
-
-      // Copy relationships from template slide
-      const templateRelsPath = templateSlideFile.replace("slides/", "slides/_rels/") + ".rels";
-      const templateRels = zip.file(templateRelsPath);
-      if (templateRels) {
-        const relsContent = await templateRels.async("string");
-        zip.file(`ppt/slides/_rels/slide${slideNumber}.xml.rels`, relsContent);
-      }
-    }
-
-    // Update presentation.xml with new slide list
-    const presPath = "ppt/presentation.xml";
-    const presFile = zip.file(presPath);
-    if (presFile) {
-      const presXml = await presFile.async("string");
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(presXml, "text/xml");
-      const sldIdLst = doc.getElementsByTagNameNS(PPTX_NS.p, "sldIdLst").item(0);
-
-      if (sldIdLst) {
-        while (sldIdLst.firstChild) {
-          sldIdLst.removeChild(sldIdLst.firstChild);
-        }
-
-        for (let i = 1; i <= slides.length; i++) {
-          const sldId = doc.createElementNS(PPTX_NS.p, "p:sldId");
-          sldId.setAttribute("id", String(255 + i));
-          sldId.setAttributeNS(PPTX_NS.r, "r:id", `rId${i + 1}`);
-          sldIdLst.appendChild(sldId);
-        }
-      }
-
-      const serializer = new XMLSerializer();
-      zip.file(presPath, serializer.serializeToString(doc));
-    }
-
-    // Update presentation.xml.rels
-    const presRelsPath = "ppt/_rels/presentation.xml.rels";
-    const presRelsFile = zip.file(presRelsPath);
-    if (presRelsFile) {
-      const presRelsXml = await presRelsFile.async("string");
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(presRelsXml, "text/xml");
-      const relationships = doc.documentElement;
-
-      if (relationships) {
-        // Remove existing slide relationships
-        const existingRels = doc.getElementsByTagNameNS(PPTX_NS.rel, "Relationship");
-        const slideRelType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide";
-
-        // Collect rels to remove (can't modify during iteration)
-        const relsToRemove: ReturnType<typeof existingRels.item>[] = [];
-        for (let i = 0; i < existingRels.length; i++) {
-          const rel = existingRels.item(i);
-          if (rel && rel.getAttribute("Type") === slideRelType) {
-            relsToRemove.push(rel);
-          }
-        }
-        for (const rel of relsToRemove) {
-          if (rel) relationships.removeChild(rel);
-        }
-
-        // Add new slide relationships
-        for (let i = 1; i <= slides.length; i++) {
-          const rel = doc.createElementNS(PPTX_NS.rel, "Relationship");
-          rel.setAttribute("Id", `rId${i + 1}`);
-          rel.setAttribute("Type", slideRelType);
-          rel.setAttribute("Target", `slides/slide${i}.xml`);
-          relationships.appendChild(rel);
-        }
-      }
-
-      const serializer = new XMLSerializer();
-      zip.file(presRelsPath, serializer.serializeToString(doc));
-    }
-
-    // Update [Content_Types].xml
-    const ctPath = "[Content_Types].xml";
-    const ctFile = zip.file(ctPath);
-    if (ctFile) {
-      let ctXml = await ctFile.async("string");
-
-      // Remove existing slide overrides
-      ctXml = ctXml.replace(/<Override[^>]*PartName="\/ppt\/slides\/slide\d+\.xml"[^>]*\/>/g, "");
-
-      // Add new slide overrides
-      const slideContentType = "application/vnd.openxmlformats-officedocument.presentationml.slide+xml";
-      let overrides = "";
-      for (let i = 1; i <= slides.length; i++) {
-        overrides += `<Override PartName="/ppt/slides/slide${i}.xml" ContentType="${slideContentType}"/>`;
-      }
-      ctXml = ctXml.replace("</Types>", `${overrides}</Types>`);
-
-      zip.file(ctPath, ctXml);
-    }
-
-    // Add speaker notes
-    await addNotesToPptx(zip, slideNotes, slides.length);
-
-    // Generate the output
-    const outputData = await zip.generateAsync({
-      type: "nodebuffer",
-      compression: "DEFLATE",
-      compressionOptions: { level: 6 },
-    });
-
-    // Set response headers
-    const filename = courseRow.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
-    c.header("Content-Disposition", `attachment; filename="${filename}.pptx"`);
-    c.header("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
-
-    return c.body(new Uint8Array(outputData));
+    return c.body(new Uint8Array(result.buffer));
   } catch (error) {
     console.error("PPTX export error:", error);
     return c.json({
