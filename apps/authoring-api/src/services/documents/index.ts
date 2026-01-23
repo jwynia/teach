@@ -14,6 +14,18 @@ export {
   type PptxGenerationOptions,
 } from "./pptx.service.js";
 
+export {
+  discoverLayoutsFromZip,
+  loadLayoutsFromManifest,
+  buildLayoutMap,
+  findMatchingLayout,
+  populatePlaceholders,
+  DEFAULT_TEMPLATE_PATH,
+  DEFAULT_TEMPLATE_ID,
+  type DiscoveredLayout,
+  type TextReplacement,
+} from "./pptx-template-utils.js";
+
 // Spec Builders
 export {
   buildStudentHandoutSpec,

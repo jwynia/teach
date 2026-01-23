@@ -651,9 +651,12 @@ lessons.get("/:id/export/pptx", async (c) => {
       ? (annotations.type as SlideType)
       : "default";
 
+    console.log(`[PPTX Debug] Parsed slide: annotations.type="${annotations.type}" → slideType="${slideType}", title="${slideTitle.substring(0, 50)}..."`);
+
     slides.push({
       title: slideTitle,
       content,
+      rawContent: annotations.content,
       notes: annotations.notes || undefined,
       type: slideType,
     });
